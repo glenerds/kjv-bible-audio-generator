@@ -1,3 +1,32 @@
+# Continuation checkpoint — 2026-11-25 (native Windows portable acceptance passed)
+
+This is the newest recovery point. The earlier checkpoints below preserve the real-Qwen Genesis 1 and cross-chapter development history.
+
+## Completed native Windows package acceptance
+- Successful workflow run: `45653137050` on source commit `dbcc0ed9aaaf7c75cd89a2a595749256928fb51a`.
+- The native Windows one-folder PyInstaller build completed and the actual frozen GUI executable ran with `stdout=None` in windowed mode. The diagnostic logs show each launch stage completed with exit code 0.
+- The real packaged `--self-test` passed all five checks: VoiceDesign model, Base model, model asset manifest, Qwen runtime and bundled FFmpeg.
+- The packaged `--audio-smoke` used the actual Qwen backend on CPU and passed. It generated `Genesis_001.mp3` and cue JSON; FFmpeg decoded the MP3 successfully.
+- The complete app folder was moved and launched from a simulated `Z:` drive. Relocated self-test, relocated real Qwen audio smoke and relocated FFmpeg MP3 decode all passed.
+- Acceptance summary: `status=passed`, Torch package variant `cu128`, packaged and relocated audio smoke passed, bundled FFmpeg passed. This is a CPU smoke on a Windows runner without an NVIDIA GPU; the RTX 2070 Super GPU path still needs target-hardware testing.
+- Relocation was tested through Windows `subst` on NTFS, not a physical USB device.
+- Evidence artifact `windows-portable-package-acceptance`, ID `15043870816`, SHA-256 `d27a7eeaab0d7cf1b209f45409323bbafe02a58ce7cfe629142f2261eedde05a`, contains 13 verified files: self-test reports, audio-smoke reports, frozen-entrypoint diagnostics, MP3/cues, relocation reports and the acceptance summary. ZIP integrity passed. The evidence artifact does **not** include the full distributable app folder.
+- Packaged Qwen smoke MP3: 45,837 bytes, SHA-256 `c68237a751f5d0c6fd74ad27d5d746d6ec3a1d3ebb14d883ebbbe33bf70343fc`; independent ffprobe reported MP3, mono, 48 kHz, 3.792 seconds, approximately 96.7 kbps. A copy of that audio sample is available in the current ChatGPT conversation.
+
+## Latest source CI
+- Linux / Python 3.13 run `45656020542`: **147 passed, 4 skipped**.
+- Windows / Python 3.12 run `45656020542`: **150 passed, 1 skipped** (headless GUI test). The NTFS sparse-file fixture precheck passed and all five PowerShell build/helper scripts parsed successfully.
+- These source-suite results include the cross-chapter harness and the corrected Genesis 2:23 punctuation/source checks.
+
+## Cross-chapter real-Qwen test still pending
+- The cross-chapter fixture uses authentic Genesis 1:1 and Genesis 2:23 text, compared directly with `Genesis.json` from the public KJV corpus. Both lines match exactly; Genesis 2:23 uses the source colon after `flesh of my flesh`.
+- The real test runs one `ChapterWorker` and one production `QwenVoiceBackend` over both chapter records. It checks a single voice-preparation batch, the same narrator profile fingerprint before/after, identical narrator prompt-file SHA-256 at both chapter syntheses, exact verse cue text and two real decodable MP3s.
+- Qwen workflow run `45655573454` on commit `087aaba01b83d3e8a5a5159fa3dc47b6d6155f29` is still downloading the exact pinned 1.7B model snapshots at the time of this checkpoint. Its real Genesis 1 and cross-chapter inference steps have not yet completed. Do not call cross-chapter voice identity passed until the artifact metrics prove the same prompt hash across both narrator uses.
+
+## Remaining release blockers
+**Still a developer prototype—not ready for customer testing.** Full 1,189-chapter production, perceptual listening approval, Bible-wide character/speaker attribution and review, stop/restart/recovery under long real inference, physical USB operation, target RTX GPU benchmarks, final app distribution packaging/download and final model/software/codec/source-license review remain open.
+
+---
 # Continuation checkpoint — 2026-11-25 (KJV punctuation verified; Linux source suite green)
 
 This checkpoint is newer than the earlier cross-chapter note below.
