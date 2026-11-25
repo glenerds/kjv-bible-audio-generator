@@ -331,6 +331,14 @@ def test_cli_audio_smoke_success_uses_real_workflow_contract(tmp_path, monkeypat
     assert payload["ok"] is True
     assert payload["samples"] == 128
     assert payload["sample_rate"] == 24000
+    assert payload["text"] == "This is a test of the King James Bible narrator voice."
+    assert payload["duration_seconds"] == pytest.approx(128 / 24000)
+    import soundfile as sf
+    wav_path = tmp_path / "out" / "qwen_audio_smoke.wav"
+    assert payload["wav"] == str(wav_path)
+    assert wav_path.is_file()
+    assert sf.info(wav_path).samplerate == 24000
+    assert sf.info(wav_path).frames == 128
 
 
 def test_cli_speaker_projection_import_persists_registry_assignments_and_review(tmp_path, monkeypatch, capsys):
