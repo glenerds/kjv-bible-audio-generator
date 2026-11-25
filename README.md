@@ -1,3 +1,34 @@
+# Continuation checkpoint — 2026-11-25 (source suite green; frozen process wait in acceptance)
+
+This is the newest recovery note. Retain the earlier genuine-Qwen and Genesis 1 evidence below.
+
+## Latest committed state
+- Public repository: https://github.com/glenerds/kjv-bible-audio-generator
+- Current source head at checkpoint: `a7a9abaf9121a9acd033e7437aff429c4679a9cc`.
+- Prototype still version **0.4.12**.
+- Cross-platform source CI run `45651413075` passed:
+  - Windows 11 / Python 3.12: **149 passed** in 110.74 seconds; NTFS sparse-file fixture passed; all five PowerShell scripts parsed.
+  - Ubuntu / Python 3.13: **145 passed, 4 skipped** (NTFS/Windows-only cases).
+- The Windows package process launcher was corrected in commit `065be59251743fd3005cc28ed1dae85fbe8adbaf`. It now uses .NET `ProcessStartInfo.ArgumentList`, calls `WaitForExit(timeout)`, and reads the process exit code before inspecting self-test/audio JSON. This avoids checking a report before the GUI-subsystem executable has actually exited.
+- The old call-operator acceptance runs `45649012489` and `45649421230` completed with the same failure: PyInstaller produced the one-folder build, but after launching the windowed exe there was no entrypoint diagnostic report at the point the script checked. That is consistent with an asynchronous launch/check race, not proof the app code itself failed.
+- New waited-process package runs `45650728281` (commit `065be59`) and `45651413337` (commit `a7a9ab`) were still in their build/acceptance step at the time of this note. No frozen-app acceptance result is claimed yet.
+
+## Next immediate checks
+1. Inspect run `45650728281` and `45651413337`. The waited process must create the self-test diagnostics and JSON report; inspect argv and any startup traceback if it still fails.
+2. Once self-test passes, inspect actual Qwen CPU audio-smoke results and FFmpeg report, then continue through relocated self-test and relocated audio smoke.
+3. If the app times out, use the entrypoint diagnostic file to establish whether CLI arguments arrived and whether `main()` was reached. If the process exits nonzero, inspect the recorded exception rather than guessing at PyInstaller warnings.
+4. After package success, verify actual package contents and hashes, then keep physical USB/new-drive-letter and target PC GPU playback/performance as separate release checks.
+
+## Confirmed real audio work
+- The full genuine Qwen Genesis 1 run `45639088515` passed on Linux CPU: both pinned models passed full-file SHA-256, and the production worker rendered all 31 verses as a 96 kbps MP3 with 33 exact-text timestamped speech segments (31 narrator, 2 manually reviewed God speech). One chapter completed, zero failed.
+- I extracted and re-verified the MP3 independently: **3,032,397 bytes**, 252.672 seconds, 96,010 bps. SHA-256 `08b40550f5afec6fc5831b5ece77298eab2558901fc0a56abcf0084c82c8bac8`.
+- A genuine sample MP3 and a companion ZIP containing the MP3, 33-segment cue JSON and metrics are preserved in this conversation.
+- These results do not establish later-chapter character consistency, Bible-wide speaker attribution, subjective listening quality, or Windows frozen-app operation.
+
+## Release status
+**Still a developer prototype—not ready for user/customer testing.** Genuine CPU Qwen inference and full Genesis 1 audio/cues are verified on Linux. Native Windows frozen-app startup, self-test, audio smoke, relocation, offline operation, full 1,189-chapter production, target-PC performance, listening QA and final software/model/codec/source-license review remain open.
+
+---
 # Continuation checkpoint — 2026-11-25 (frozen Windows diagnostics and retest)
 
 This latest checkpoint is newer than the previous handoff below.
