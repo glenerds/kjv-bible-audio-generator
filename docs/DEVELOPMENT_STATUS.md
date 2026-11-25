@@ -1,10 +1,26 @@
-# Development Status — KJV Bible Audio Generator 0.4.10
+## 0.4.11 validation update — 2026-11-24
+
+A clean install on both hosted Windows and Ubuntu initially exposed a missing development dependency: `tests/test_qwen_adapter.py` imports PyTorch, but `torch` was absent from the `dev` extra. This was fixed by declaring `torch==2.10.0` in the dev dependencies, preinstalling the CPU wheel in CI, bumping the project version to 0.4.11 and adding a regression test. The new hosted rerun must pass before the status can say the Windows suite passed.
+
+- Canonical 0.4.10 source ZIP SHA-256: `4c9dffa08d75e8ee2efb60f9fa561311d3501f515dbf650e233f15ebd2cc07f9`; 73 entries; ZIP test PASS.
+- Public repo reconciliation: 72/72 non-README archive paths match Git blob hashes exactly; README intentionally updated; three review docs are public-repo-only additions.
+- Fresh 0.4.11 working extraction: compileall PASS; **124 tests passed** locally on Python 3.13.5/Linux x86_64.
+- First hosted CI attempt: both runners successfully installed dependencies and compiled; both failed collection on missing torch. The corrected workflow is triggered by the 0.4.11 commit.
+- Native Windows PowerShell parsing and Windows test result are not yet confirmed.
+
+## Remaining real-world release gates
+
+No genuine Qwen model generation/listening, Windows PyInstaller package, bundled approved FFmpeg/MP3 probe, offline Windows playback, USB relocation, long-run CPU/RAM benchmarking, full 1,189-chapter generation, measured storage, KJV-specific speaker review or complete licensing audit has passed.
+
+---
+
+# Development Status — KJV Bible Audio Generator 0.4.11
 
 Last updated: 2026-11-24.
 
 ## Summary
 
-Version 0.4.10 extends atomic persistence to arbitrary Qwen-generated files and makes FFmpeg notice imports transactional. Qwen-generated reference WAVs and `.pt` prompt assets now use extension-preserving unique staging and fsync/atomic replace. FFmpeg documentation and license files are fully staged and verified before replacing the old set, with rollback on a mid-commit failure. **123 automated tests pass**, including clean source execution; the isolated wheel install verifies the KJV structure metadata. No real Qwen speech or native Windows app has been tested; this remains a developer prototype, not a customer release.
+Version 0.4.11 adds the missing PyTorch test dependency and cross-platform CI on top of the 0.4.10 atomic-persistence and transactional FFmpeg-notice work. Qwen-generated reference WAVs and `.pt` prompt assets now use extension-preserving unique staging and fsync/atomic replace. FFmpeg documentation and license files are fully staged and verified before replacing the old set, with rollback on a mid-commit failure. **124 automated tests pass locally**, including clean source execution; the isolated wheel install verifies the KJV structure metadata. No real Qwen speech or native Windows app has been tested; this remains a developer prototype, not a customer release.
 
 | Area | Status | Notes |
 |---|---|---|

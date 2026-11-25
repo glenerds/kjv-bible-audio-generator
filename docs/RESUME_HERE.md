@@ -1,4 +1,15 @@
-# Resume Here — KJV Bible Audio Generator 0.4.10
+## Latest continuation — 2026-11-24: cross-platform CI and test dependency fix
+
+- Canonical 0.4.10 archive SHA-256 verified: `4c9dffa08d75e8ee2efb60f9fa561311d3501f515dbf650e233f15ebd2cc07f9`. The 73-file ZIP passes integrity checks; all 72 non-README archive files match the public GitHub tree exactly. README difference is intentional; the repo has three additional AI-review files.
+- Fresh clean extraction compiled; prior source baseline reproduced at 123 passing tests.
+- New public GitHub Actions checks allocated real Windows/Python 3.12 and Ubuntu/Python 3.13 runners. Both reached test collection and identified the same missing dependency: test module imports torch but the dev extra did not provide it.
+- Fixed by adding `torch==2.10.0` to the dev extra, installing CPU torch in CI, adding a dependency regression test, and bumping package metadata to 0.4.11.
+- Local 0.4.11 verification: compileall PASS; **124 tests passed** on Python 3.13.5 Linux. The workflow rerun is pending and must be checked before claiming the hosted Windows test passed.
+- Do not confuse static/hosted source tests with genuine Qwen speech or full Windows release acceptance; those remain unpassed.
+
+---
+
+# Resume Here — KJV Bible Audio Generator 0.4.11
 
 **Separate project:** KJV Bible Audio Generator, not the legacy KJV Bible Reader / USB Builder.
 
@@ -13,7 +24,7 @@ A self-contained Windows desktop app imports/pastes KJV, manages recurring chara
 ## Active source
 
 - Workspace: `/mnt/data/kjv-audio-generator-work/`
-- Package version: **0.4.10**
+- Package version: **0.4.11**
 - Main GUI: `src/kjv_audio_generator/app.py`
 - Qwen adapter/runtime: `src/kjv_audio_generator/backend.py`, `runtime.py`
 - Persistence: `src/kjv_audio_generator/json_io.py`

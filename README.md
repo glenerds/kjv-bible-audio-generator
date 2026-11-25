@@ -1,3 +1,35 @@
+# Engineering log — 2026-11-24 (0.4.11: cross-platform CI and missing test dependency)
+
+The user asked me to continue direct engineering. This entry records what was verified and fixed in this pass.
+
+## Canonical source reconciliation
+
+- Canonical archive: `KJV_Audio_Generator_Developer_Source_0_4_10_2026-11-24.zip`, 171,950 bytes, SHA-256 `4c9dffa08d75e8ee2efb60f9fa561311d3501f515dbf650e233f15ebd2cc07f9`.
+- ZIP integrity check passed; it contains 73 files.
+- Compared Git object hashes for every archive path with the public repository tree: **72/72 non-README archive files match exactly**. The README is intentionally different because it contains the newly added continuation notes. The public repository has three extra AI-review instruction files. No archive product file is missing or silently substituted.
+- Fresh extraction to `/mnt/data/kjv-generator-verification-pass-20261124`; Python 3.13.5 Linux x86_64; compileall passed; full suite **123 passed** before new changes.
+
+## CI discovery and defect
+
+- Added cross-platform GitHub Actions checks for native Windows/Python 3.12 and Ubuntu 24.04/Python 3.13. First real hosted run allocated both runners, installed dependencies and compiled the project.
+- Both test jobs then failed during collection for the same concrete reason: `tests/test_qwen_adapter.py` imports `torch`, but `torch` was missing from the declared `dev` extra. This was not a Qwen inference failure; no test case had started.
+- The existing Windows builder already pins PyTorch 2.10.0 for CPU or CUDA. Added `torch==2.10.0` to the `dev` optional dependencies so a developer test install is complete.
+- Updated CI to preinstall the official CPU wheel from the PyTorch CPU index before installing `.[dev]`, avoiding an unnecessary CUDA runtime in the test jobs.
+- Bumped package version to **0.4.11** and added a regression test that keeps the test dependency declaration explicit.
+
+## Local verification after the fix
+
+- `python -m compileall -q src tests tools` — PASS.
+- `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 xvfb-run -a env PYTHONPATH=src pytest -q` — **124 passed** in 29.16 seconds.
+- Confirmed PEP 440 accepts the CPU build label `2.10.0+cpu` for the declared `torch==2.10.0` constraint.
+- The updated cross-platform workflow is being rerun by the new commit. Do not report native Windows or GitHub-hosted results as passed until those checks finish successfully.
+
+## Still not verified
+
+No genuine Qwen inference, no full VoiceDesign/Base model download, no audio listening check, no real FFmpeg Windows binary or encoder test, no complete PyInstaller build, no Windows offline launch/playback, no USB relocation, no CPU-only model-generation benchmark, and no full 1,189-chapter output run. The Linux synthetic Genesis fixture remains synthetic and cannot serve as evidence of Qwen speech.
+
+---
+
 # Continuation log — 2026-11-24 (pre-work update: repository reconciliation and clean test rerun)
 
 This update is being committed **before** engineering, as required by the user's continuation instruction. No application source or test code has been changed in this work pass yet.
@@ -88,7 +120,7 @@ The prior development host did not have the `qwen_tts` runtime or model weights,
 
 ---
 
-# KJV Bible Audio Generator — developer prototype 0.4.10
+# KJV Bible Audio Generator — developer prototype 0.4.11
 
 **Developer prototype only. Not a customer-ready Windows application. Do not install or test this as the finished product.** Separate from the legacy KJV Bible Reader / USB Builder.
 
@@ -116,7 +148,14 @@ The user explicitly requires this README to be updated **before any further engi
 6. Real Qwen remains blocked: `qwen_tts` is not installed and Hugging Face DNS resolution fails. No actual model/audio or Windows toolchain is present. Both installed-wheel preflights correctly fail closed.
 7. README, resume guide, development status, checkpoint, downloads/archive notes and GitHub pointers updated to the verified 0.4.10 state.
 
-## Implemented through 0.4.10
+## Implemented through 0.4.11
+
+### 0.4.11 — complete developer test dependencies and cross-platform CI
+
+- Added the explicitly required PyTorch 2.10.0 runtime to the `dev` optional dependency set. The Qwen adapter's tests import torch and previously failed during test collection on a clean developer install.
+- Added public GitHub Actions jobs for native Windows / Python 3.12 and Ubuntu / Python 3.13. The Windows job compiles and runs the complete test suite and parses the PowerShell build scripts; the Linux job runs the full GUI-enabled suite under Xvfb.
+- CI installs the matching CPU PyTorch wheel from the official PyTorch CPU index before the project extras, avoiding CUDA packages in test-only runners.
+- Bumped package metadata to 0.4.11 and added a regression test that prevents the dev dependency from silently losing torch.
 
 ### 0.4.10 — atomic files for Qwen assets and transactional FFmpeg notice imports
 - Added `atomic_output_path()`: a unique same-directory staging path that preserves the target extension (for example `.tmp.wav`), checks that the writer produced non-empty output, fsyncs the completed file and commits it with `os.replace()`.
@@ -197,7 +236,7 @@ This is an **LGPLv3 candidate**, not an approved app dependency. The archive dow
 Linux x86_64, Python 3.13.5, PyTorch 2.10 CPU-only, host FFmpeg 7.1.5, approx. 5.8 GB RAM and 3 CPU cores. No CUDA, Qwen runtime/weights, PowerShell/Wine, PyInstaller or bundled Windows FFmpeg; Hugging Face DNS resolution fails.
 
 - `python -m compileall -q src tests tools` — PASS.
-- Full source suite: `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 xvfb-run -a env PYTHONPATH=src pytest -q` — **123 passed**, process exit 0.
+- 0.4.10 clean-source baseline: full suite **123 passed**.\n- 0.4.11 post-fix clean extraction: compileall PASS; full suite **124 passed** on Python 3.13.5 Linux x86_64. The new Windows and Linux hosted workflows are being rerun; their first attempt correctly exposed the missing torch dev dependency and is recorded above.
 - Focused atomic-output / FFmpeg notice / Qwen adapter suite — **45 passed**, process exit 0.
 - `python -m compileall -q src tests tools` — PASS.
 - CLI entry-point tests: 17 passed; coverage for `src/kjv_audio_generator/__main__.py` is **96%**, including GUI launch, positive preflight/audio-smoke wiring, speaker-seed import and the standard queue path.

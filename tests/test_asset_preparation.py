@@ -95,8 +95,8 @@ def test_project_version_is_consistent():
     root = Path(__file__).resolve().parents[1]
     pyproject = (root / "pyproject.toml").read_text(encoding="utf-8")
     package_init = (root / "src" / "kjv_audio_generator" / "__init__.py").read_text(encoding="utf-8")
-    assert 'version = "0.4.10"' in pyproject
-    assert '__version__ = "0.4.10"' in package_init
+    assert 'version = "0.4.11"' in pyproject
+    assert '__version__ = "0.4.11"' in package_init
 
 
 def test_hf_download_cli_version_stays_compatible_with_pinned_transformers():
@@ -481,3 +481,11 @@ def test_ffmpeg_notice_import_successfully_replaces_old_bundle_as_a_set(tmp_path
     assert tool.verify_notices(licenses)["ok"] is True
     assert not list(licenses.glob(".ffmpeg-notices-stage-*"))
     assert not list(licenses.glob(".ffmpeg-notices-backup-*"))
+
+
+def test_developer_test_dependencies_include_the_pytorch_adapter_runtime():
+    root = Path(__file__).resolve().parents[1]
+    pyproject = (root / "pyproject.toml").read_text(encoding="utf-8")
+    dev_section = pyproject.split("dev = [", 1)[1].split("]", 1)[0]
+    assert "pytest>=8" in dev_section
+    assert "torch==2.10.0" in dev_section
