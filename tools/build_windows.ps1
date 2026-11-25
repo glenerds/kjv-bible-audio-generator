@@ -17,6 +17,13 @@ try {
     Write-Host "Installing pinned PyTorch $TorchVersion ($TorchVariant) from $TorchIndex…"
     & $Python -m pip install "torch==$TorchVersion" "torchaudio==$TorchVersion" --index-url $TorchIndex
     if ($LASTEXITCODE -ne 0) { throw 'Could not install the selected PyTorch/torchaudio wheel set.' }
+    if ($TorchVariant -eq 'cu128') {
+        $CudnnRuntimeVersion = (& $Python -c 'import torch; v=torch.backends.cudnn.version(); print("unknown" if v is None else f"{v//10000}.{(v//100)%100}.{v%100}")').Trim()
+        if ($LASTEXITCODE -ne 0 -or $CudnnRuntimeVersion -ne '9.10.2') {
+            throw "PyTorch cu128 must load the pinned cuDNN 9.10.2.21 runtime family; detected $CudnnRuntimeVersion. Do not package unmatched CUDA/cuDNN DLLs."
+        }
+        Write-Host "Verified PyTorch cu128 cuDNN runtime family: $CudnnRuntimeVersion"
+    }
     Write-Host 'Installing the pinned Qwen and developer packaging dependencies…'
     & $Python -m pip install -e '.[qwen,dev]'
     if ($LASTEXITCODE -ne 0) { throw 'Could not install the Qwen/packaging dependencies.' }
@@ -111,7 +118,7 @@ foreach ($DataFile in @('Clear-Aligned-Projections.tsv','character_detail.semant
         throw "Required bundled speaker-attribution data is missing: $(Join-Path $Attribution $DataFile)"
     }
 }
-foreach ($LicenseFile in @('GLYSSEN_MIT.txt','QWEN3_TTS_APACHE_2.0.txt','TOKENIZERS_APACHE_2.0.txt','CUDNN_9.7.0_EULA.html','CUDNN_9.7.0_ACKNOWLEDGEMENTS.html','NVIDIA_CUDNN_NOTICE_MANIFEST.json','FFMPEG_LICENSE.txt','FFMPEG_BUILD_MANIFEST.json')) {
+foreach ($LicenseFile in @('GLYSSEN_MIT.txt','QWEN3_TTS_APACHE_2.0.txt','TOKENIZERS_APACHE_2.0.txt','CUDNN_9.10.2.21_EULA.html','CUDNN_9.10.2.21_ACKNOWLEDGEMENTS.html','NVIDIA_CUDNN_NOTICE_MANIFEST.json','FFMPEG_LICENSE.txt','FFMPEG_BUILD_MANIFEST.json')) {
     if (-not (Test-Path (Join-Path $Licenses $LicenseFile) -PathType Leaf)) {
         throw "Required third-party license/build notice is missing: $(Join-Path $Licenses $LicenseFile)"
     }
