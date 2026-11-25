@@ -40,6 +40,7 @@ def validate_chapter_cues(source_path: Path, cue_path: Path) -> dict[str, Any]:
 
     grouped: dict[str, list[str]] = {}
     first_seen: list[str] = []
+    previous_end = 0.0
     for item in segments:
         if not isinstance(item, dict):
             raise ValueError("Cue segment is not an object.")
@@ -53,8 +54,15 @@ def validate_chapter_cues(source_path: Path, cue_path: Path) -> dict[str, Any]:
         grouped[reference].append(text)
         start = float(item.get("start_seconds", 0))
         end = float(item.get("end_seconds", 0))
-        if start < 0 or end <= start:
-            raise ValueError(f"Invalid cue timing for {reference}: {start} to {end}.")
+        if start < previous_end - 0.01 or end <= start:
+            raise ValueError(f"Invalid or overlapping cue timing for {reference}: {start} to {end}.")
+        previous_end = end
+
+    cue_duration = float(payload.get("duration_seconds", 0))
+    if cue_duration <= 0 or abs(previous_end - cue_duration) > 0.05:
+        raise ValueError(
+            f"Genesis 1 cue duration ({cue_duration}) does not match the final speech cue ({previous_end})."
+        )
 
     expected_refs = [verse.ref.label() for verse in chapter.verses]
     if first_seen != expected_refs:
