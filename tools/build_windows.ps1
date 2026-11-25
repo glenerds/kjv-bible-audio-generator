@@ -31,6 +31,12 @@ $AssetManifestPath = Join-Path $Models 'KJV_QWEN_ASSET_MANIFEST.json'
 if (-not (Test-Path $AssetManifestPath -PathType Leaf)) { throw 'Pinned Qwen asset manifest is missing. Run tools/prepare_assets.ps1 first.' }
 $AssetManifest = Get-Content -Raw -LiteralPath $AssetManifestPath | ConvertFrom-Json
 if ($AssetManifest.schema_version -ne 1 -or @($AssetManifest.models).Count -ne 2) { throw 'Pinned Qwen asset manifest is invalid.' }
+$WeightIntegrityScript = Join-Path $PSScriptRoot 'qwen_asset_integrity.py'
+if (-not (Test-Path $WeightIntegrityScript -PathType Leaf)) { throw 'Pinned Qwen asset integrity verifier is missing.' }
+& $Python $WeightIntegrityScript verify --models-root $Models --manifest $AssetManifestPath
+if ($LASTEXITCODE -ne 0) {
+    throw 'Pinned Qwen weight SHA-256 or manifest verification failed. Packaging is blocked.'
+}
 $ExpectedRevisions = @{
     'Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign' = '5ecdb67327fd37bb2e042aab12ff7391903235d3'
     'Qwen/Qwen3-TTS-12Hz-1.7B-Base' = 'fd4b254389122332181a7c3db7f27e918eec64e3'
