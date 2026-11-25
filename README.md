@@ -1,3 +1,20 @@
+# Windows sparse-file diagnosis — 2026-11-24 (pre-fix engineering note)
+
+The dedicated Windows allocation probe at commit `86149ded45c23eaff32abaa6629b1a8926d7b820` ran on GitHub's Windows/Python 3.12 runner and returned a concrete result:
+
+- The fixture successfully sets the NTFS sparse-file attribute.
+- After creating a logical 3,500,000,000-byte fake model file, `GetCompressedFileSizeW` reported **147,324,928 allocated bytes**. The fixture's 1 MiB allocation budget therefore failed.
+- The focused diagnostic ran as its own CI step and correctly skipped the full Windows test suite after failing. Ubuntu passed the complete suite.
+- This demonstrates that setting `FSCTL_SET_SPARSE` before `Path.truncate()` is not sufficient: extending/zeroing a sparse file through ordinary file writes can still allocate disk space.
+
+## Next change to validate
+
+Use Windows `FSCTL_SET_ZERO_DATA` after setting the EOF on the sparse placeholder. The Windows API accepts a `FILE_ZERO_DATA_INFORMATION` range and may deallocate zeroed NTFS clusters in sparse files. Keep the file's logical length unchanged, then verify allocated bytes via `GetCompressedFileSizeW`. Run the focused check first, then the full suite and PowerShell parse only if that diagnostic passes.
+
+No production application code is changed by this fixture-only work. Genuine Qwen inference, full Windows packaging/playback, approved FFmpeg, USB portability and real performance remain unverified.
+
+---
+
 # Windows CI diagnostic update — 2026-11-24 (verify NTFS sparse fixture allocation)
 
 Two hosted Windows executions of the sparse-fixture patch were marked failed by GitHub, but the job metadata left the pytest step in an impossible "in_progress" state and the job-log storage endpoint returned a missing-log error. Both runs had installed dependencies and passed compileall. Ubuntu passed 125 tests. Because we cannot inspect the lost Windows logs, we must not assert that the fixture fix is correct or claim a Windows test result.
