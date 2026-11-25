@@ -1,3 +1,36 @@
+# Continuation handoff — 2026-11-25 (FFmpeg build bootstrap verification)
+
+This checkpoint is recorded before the next engineering pass.
+
+## Current starting point
+- Public repository: https://github.com/glenerds/kjv-bible-audio-generator
+- Application prototype version remains **0.4.12**.
+- Current branch head at checkpoint start: `ea26bf21b7942aa5ecdf8a06a26195ab5354ae89`.
+- Previous verified source-test baseline remains commit `dbc1683046378f5b45aafbd8a6c64db654d0b8fa`: Windows 11/Python 3.12 **136 passed**; Ubuntu/Python 3.13 **134 passed, 2 Windows-only skips**.
+- Native Windows FFmpeg candidate audit passed at run `45623835915`: fixed archive digest, LGPLv3 output, non-GPL/nonfree configuration, `libmp3lame`, WAV→MP3→decode, license and all 35 notice-file hashes.
+- Verified FFmpeg binary SHA-256: `3209f0ba6096189de3f850f65488bdb535177b7e46e0b16e902b3230c5ff74fe`; LGPL text SHA-256: `da7eabb7bafdf7d3ae5e9f223aa5bdc1eece45ac569dc21b3b037520b4464768`.
+- Added `tools/ensure_ffmpeg.ps1`: it skips when the executable, build manifest, license and notice manifest are present; otherwise it runs the exact pinned audit and copies the verified executable/manifest into the project.
+- `tools/build_windows.ps1` now calls that helper and then verifies FFmpeg before packaging. The builder also carries the expected archive, executable, license and source-commit hashes.
+- The audit manifest now records archive provenance. Windows helper tests use a fake audit script and are designed to exercise both the acquire and skip paths without downloading FFmpeg or Qwen.
+
+## CI status at this checkpoint
+- Newer source-test runs for the bootstrap work were not yet a verified green result at the time of this handoff. Earlier attempts exposed missing FFmpeg manifest path variables; those were restored in the latest commit. Do not claim the latest branch is green until its exact Windows and Ubuntu logs confirm it.
+- First inspect runs `45627490553` (head `ea26bf21...`) and `45627483034` (head `dbdc03a...`), then the newer run triggered by the latest commit. Check the two new Windows helper tests and PowerShell parsing step.
+
+## Next work
+1. Inspect the newest Windows/Ubuntu run and fix its first concrete failure; rerun both platforms.
+2. Validate `ensure_ffmpeg.ps1` directly with the native Windows fixture, including both branches and cleanup/environment restoration.
+3. Audit `build_windows.ps1` for remaining manual FFmpeg assumptions and make its manifest, compiled-in hashes and template consistent.
+4. Add a safe Windows packaging preflight using small fixtures; do not represent it as a full model build.
+5. Keep Qwen release blockers explicit: real 1.7B snapshots have not been downloaded/hashed in this runtime; no real VoiceDesign/Base inference, Genesis 1 listening, recurring speaker QA, real-model recovery, packaged-app launch/playback, USB relocation, performance or full-book production has passed.
+
+## Release status
+**Developer prototype only — not ready for user/customer testing.** FFmpeg's standalone technical candidate is verified but still requires human license/source-obligation review. Source-suite success is not packaged Windows acceptance.
+
+The user requires a README checkpoint update before every “Continue working” request and an explicit pause message whenever work stops. This README is the recovery point.
+
+---
+
 # Continuation handoff — 2026-11-25 (0.4.12, FFmpeg technical audit passed)
 
 This is the current recovery point. Earlier handoffs remain below as historical notes.
