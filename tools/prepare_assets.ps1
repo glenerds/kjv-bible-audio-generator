@@ -171,11 +171,12 @@ if ((Get-GitBlobSha1 $TokenizerLicensePath) -ne '261eeb9e9f8b2b4b0d119366dda99c6
 # PyTorch 2.10.0's Windows CUDA 12.8 build configuration selects the official
 # cuDNN 9.7.0.66 archive. Preserve the matching versioned NVIDIA SDK EULA and
 # its third-party acknowledgements in the portable application.
-$CudnnVersion = '9.7.0'
+$CudnnVersion = '9.10.2.21'
+$CudnnDocsVersion = '9.10.2'
 $CudnnEulaPath = Join-Path $LicenseDir "CUDNN_${CudnnVersion}_EULA.html"
 $CudnnAcknowledgementsPath = Join-Path $LicenseDir "CUDNN_${CudnnVersion}_ACKNOWLEDGEMENTS.html"
-$CudnnEulaUri = "https://docs.nvidia.com/deeplearning/cudnn/backend/v$CudnnVersion/reference/eula.html"
-$CudnnAcknowledgementsUri = "https://docs.nvidia.com/deeplearning/cudnn/backend/v$CudnnVersion/reference/acknowledgements.html"
+$CudnnEulaUri = "https://docs.nvidia.com/deeplearning/cudnn/backend/v$CudnnDocsVersion/reference/eula.html"
+$CudnnAcknowledgementsUri = "https://docs.nvidia.com/deeplearning/cudnn/backend/v$CudnnDocsVersion/reference/acknowledgements.html"
 Invoke-WebRequest -Uri $CudnnEulaUri -OutFile $CudnnEulaPath -UseBasicParsing
 Invoke-WebRequest -Uri $CudnnAcknowledgementsUri -OutFile $CudnnAcknowledgementsPath -UseBasicParsing
 $CudnnEulaText = Get-Content -Raw -LiteralPath $CudnnEulaPath
@@ -193,9 +194,9 @@ foreach ($RequiredTerm in @('University of Tennessee','University of California'
 $CudnnUtf8NoBom = New-Object -TypeName System.Text.UTF8Encoding -ArgumentList $false
 $CudnnNoticeManifest = @{
     schema_version = 1
-    cudnn_archive = 'cudnn-windows-x86_64-9.7.0.66_cuda12-archive.zip'
+    cudnn_archive = 'cudnn-windows-x86_64-9.10.2.21_cuda12-archive.zip'
     cudnn_version = $CudnnVersion
-    upstream_configuration = 'https://github.com/pytorch/pytorch/blob/v2.10.0/.ci/pytorch/windows/internal/cuda_install.bat'
+    upstream_release_metadata = 'https://github.com/pytorch/pytorch/blob/v2.10.0/RELEASE.md'
     eula_url = $CudnnEulaUri
     eula_sha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath $CudnnEulaPath).Hash.ToLowerInvariant()
     acknowledgements_url = $CudnnAcknowledgementsUri
