@@ -186,3 +186,32 @@ def test_long_form_transcriber_uses_whisper_native_long_audio_mode(monkeypatch):
     assert calls["generate_kwargs"]["return_timestamps"] is True
     assert calls["generate_kwargs"]["input_features"] == "features"
     assert calls["generate_kwargs"]["attention_mask"] == "mask"
+
+def test_genesis_transcript_failure_still_preserves_audio_and_cross_chapter_evidence():
+    root = Path(__file__).resolve().parents[1]
+    workflow = (
+        root / ".github" / "workflows" / "qwen-real-inference.yml"
+    ).read_text(encoding="utf-8")
+
+    verify_name = "- name: Verify complete Genesis 1 narration with pinned long-form Whisper"
+    upload_genesis_name = "- name: Upload genuine Genesis 1 MP3 and speech-verification evidence"
+    cross_chapter_name = "- name: Run real Qwen narrator identity check across Genesis 1 and 2 offline"
+    upload_cross_name = "- name: Upload genuine cross-chapter narrator identity evidence"
+    assert all(workflow.count(name) == 1 for name in (
+        verify_name, upload_genesis_name, cross_chapter_name, upload_cross_name
+    ))
+
+    verify_at = workflow.index(verify_name)
+    upload_genesis_at = workflow.index(upload_genesis_name)
+    cross_at = workflow.index(cross_chapter_name)
+    upload_cross_at = workflow.index(upload_cross_name)
+    assert verify_at < upload_genesis_at < cross_at < upload_cross_at
+
+    genesis_upload = workflow[upload_genesis_at:cross_at]
+    cross_step = workflow[cross_at:upload_cross_at]
+    cross_upload = workflow[upload_cross_at:]
+    assert "if: always()" in genesis_upload
+    assert "if-no-files-found: warn" in genesis_upload
+    assert "if: always() && steps.genesis1.outcome == 'success'" in cross_step
+    assert "if: always()" in cross_upload
+    assert "if-no-files-found: warn" in cross_upload
