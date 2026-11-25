@@ -123,13 +123,13 @@ def test_hf_download_cli_version_stays_compatible_with_pinned_transformers():
 def test_ffmpeg_documentation_records_a_pinned_lgplv3_candidate_without_claiming_binary_verification():
     root = Path(__file__).resolve().parents[1]
     readme = (root / "LICENSES" / "README_FFMPEG.md").read_text(encoding="utf-8")
-    candidate_sha = "3639382f80af8849c7e11b11f3f379992e2f1925fe95fcee262cbe242a005b84"
+    candidate_sha = "78d1f7728fef503b50a6de5866950a96d7e4db0fdb9dfaa47fc2c6691a48370b"
     source_commit = "b9ebe81995b58cd4e3177a6c0ad5dc2392f7f7fd"
     assert candidate_sha in readme
     assert source_commit in readme
     assert "--enable-version3" in readme
     assert "--enable-libmp3lame" in readme
-    assert "could not be downloaded" in readme
+    assert "archive SHA-256 was verified on a native Windows runner" in readme
     assert "not an approved app dependency" in readme
 
 
@@ -563,6 +563,7 @@ def test_pinned_windows_ffmpeg_audit_is_digest_locked_and_runs_real_acceptance_c
         "179056458",
         "b9ebe81995b58cd4e3177a6c0ad5dc2392f7f7fd",
         "Get-FileHash -Algorithm SHA256",
+        "$EncoderOutput -notmatch 'libmp3lame'",
         "& $Ffmpeg -version",
         "& $Ffmpeg -L",
         "--enable-version3",
@@ -587,6 +588,7 @@ def test_pinned_windows_ffmpeg_audit_is_digest_locked_and_runs_real_acceptance_c
         "./tools/run_ffmpeg_candidate_audit.ps1",
     ):
         assert token in workflow
+    assert chr(8) not in script
     for token in (
         "78d1f7728fef503b50a6de5866950a96d7e4db0fdb9dfaa47fc2c6691a48370b",
         "179056458",

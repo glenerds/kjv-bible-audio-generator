@@ -12,12 +12,15 @@ The build accepts LGPL-2.1-or-later or LGPL-3.0-or-later, but requires the exact
 
 Do not copy the template to the required manifest without replacing every placeholder. A manifest and binary are still not, by themselves, legal clearance: inspect every linked codec/library, preserve all notices, provide matching source or a valid source offer as required, and obtain a commercial-distribution review. FFmpeg's license can change with build configuration.
 
-## Audited LGPLv3 candidate (not yet binary-verified)
+## Audited LGPLv3 candidate — technical audit in progress
 
-The BtbN/FFmpeg-Builds release was refreshed on 2026-11-25. The current Windows x64 **LGPL, static** asset is `ffmpeg-master-latest-win64-lgpl.zip`, 179,056,458 bytes, with the GitHub release asset digest SHA-256 `78d1f7728fef503b50a6de5866950a96d7e4db0fdb9dfaa47fc2c6691a48370b`. The release tag still resolves to source commit `b9ebe81995b58cd4e3177a6c0ad5dc2392f7f7fd`. The exact recipe previously inspected at that commit selects `variants/win64-lgpl.sh`, which uses `--enable-version3 --disable-debug` and `COPYING.LGPLv3`; `scripts.d/50-libmp3lame.sh` enables `--enable-libmp3lame`.
+The BtbN/FFmpeg-Builds release was refreshed on 2026-11-25. The current Windows x64 LGPL static asset is ffmpeg-master-latest-win64-lgpl.zip, 179,056,458 bytes, with GitHub release asset digest SHA-256 78d1f7728fef503b50a6de5866950a96d7e4db0fdb9dfaa47fc2c6691a48370b. The release tag resolves to source commit b9ebe81995b58cd4e3177a6c0ad5dc2392f7f7fd. The exact recipe previously inspected at that commit selects variants/win64-lgpl.sh, uses --enable-version3 --disable-debug and COPYING.LGPLv3; scripts.d/50-libmp3lame.sh enables --enable-libmp3lame.
 
-The new 2026-11-25 archive has **not yet been downloaded or internally inspected**. Do not copy the prior 2026-11-24 archive digest forward. Before use, the exact archive digest above must match, then the contained `ffmpeg.exe` must pass `-version`, `-L`, configuration, `libmp3lame`, notice import/verification, and WAV→MP3→decode testing. The release URL uses a mutable `latest` tag; the digest check is mandatory.
+A native Windows runner downloaded this exact 2026-11-25 archive and confirmed both its byte length and SHA-256. The contained executable was found; its -version, build-configuration and -L checks passed, including expected GNU LGPL version 3 output and no --enable-gpl or --enable-nonfree configuration flags.
 
+The first audit stopped at the libmp3lame check because the PowerShell audit script contained a backspace control character where a regex word-boundary had been intended. This was an audit-script defect, not proof that the FFmpeg binary lacks the encoder. The script is corrected to check the literal encoder name and print the encoder list on failure. The next native Windows run must establish whether the candidate actually exposes libmp3lame, then perform WAV-to-MP3-to-decode and import/verify all notices. Those checks are still pending.
+
+The candidate is not an approved app dependency until the full technical check and human source/license-obligation review are complete. The release URL uses a mutable latest tag; the fixed archive digest check is mandatory.
 Candidate release: https://github.com/FFmpeg-Builds/FFmpeg-Builds/releases/tag/latest
 Binary: https://github.com/FFmpeg-Builds/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-lgpl.zip
 Build source: https://github.com/FFmpeg-Builds/FFmpeg-Builds/tree/b9ebe81995b58cd4e3177a6c0ad5dc2392f7f7fd

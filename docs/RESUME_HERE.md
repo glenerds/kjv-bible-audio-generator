@@ -1,3 +1,9 @@
+## 2026-11-25 FFmpeg audit follow-up
+
+The 2026-11-25 Windows x64 LGPL archive was downloaded on an actual Windows runner; its 179,056,458-byte size and SHA-256 78d1f7728fef503b50a6de5866950a96d7e4db0fdb9dfaa47fc2c6691a48370b matched publisher metadata.
+The executable ran -version; its reported configuration did not enable GPL or nonfree options and included --enable-version3; -L identified GNU LGPL version 3.
+The first audit stopped at the libmp3lame check due a backspace character embedded in the script word-boundary regex. The script check is being corrected to literal substring matching with the encoder output printed on failure. Do not infer the encoder is missing from that attempt.
+The actual encoder presence, WAV-to-MP3-to-decode probe, notice import/hash validation, and legal/source obligations remain unverified. Not approved as an app dependency.
 ## Latest continuation — 2026-11-25: 0.4.12 model hash hardening
 
 - Validated source/test commit `2785eee6d64afd634cfd9ac4991a8f53a3e7a2b9`, GitHub run `45621233336`: Windows 11/Python 3.12 **135 passed**; Ubuntu/Python 3.13 **133 passed, 2 Windows-only skips**; all three PowerShell scripts parsed; NTFS sparse fixture check passed.

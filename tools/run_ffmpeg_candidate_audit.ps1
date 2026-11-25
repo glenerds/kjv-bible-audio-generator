@@ -54,7 +54,12 @@ if ($LASTEXITCODE -ne 0 -or
 }
 
 $EncoderOutput = & $Ffmpeg -hide_banner -encoders 2>&1 | Out-String
-if ($LASTEXITCODE -ne 0 -or $EncoderOutput -notmatch 'libmp3lame') {
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "FFmpeg encoder listing:`n$EncoderOutput"
+    throw 'Could not read the candidate FFmpeg encoder list.'
+}
+if ($EncoderOutput -notmatch 'libmp3lame') {
+    Write-Host "FFmpeg encoder listing:`n$EncoderOutput"
     throw 'The candidate does not expose the required libmp3lame encoder.'
 }
 
