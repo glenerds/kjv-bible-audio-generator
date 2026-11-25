@@ -123,9 +123,22 @@ try {
     if (-not (Test-Path $AudioCue -PathType Leaf)) {
         throw 'Packaged Qwen audio smoke did not create its verse cue JSON.'
     }
+    $ExpectedAudioText = 'This is a test of the King James Bible narrator voice.'
+    if ([string]$Audio.text -ne $ExpectedAudioText) {
+        throw "Packaged Qwen audio report does not preserve the expected text: $($Audio.text)"
+    }
+    $CuePayload = Get-Content -Raw -LiteralPath $AudioCue | ConvertFrom-Json
+    if (@($CuePayload.segments).Count -ne 1 -or [string]$CuePayload.segments[0].text -ne $ExpectedAudioText) {
+        throw 'Packaged Qwen MP3 cue does not preserve the exact expected speech text.'
+    }
     & $Ffmpeg -hide_banner -loglevel error -i $AudioMp3 -f null NUL
     if ($LASTEXITCODE -ne 0) {
         throw 'The packaged FFmpeg binary could not decode the generated Qwen MP3.'
+    }
+    $DecodedAudioWav = Join-Path $EvidenceRoot 'packaged-qwen-smoke-decoded.wav'
+    & $Ffmpeg -hide_banner -loglevel error -y -i $AudioMp3 -vn -ac 1 -ar 24000 -c:a pcm_s16le $DecodedAudioWav
+    if ($LASTEXITCODE -ne 0 -or -not (Test-Path $DecodedAudioWav -PathType Leaf) -or (Get-Item $DecodedAudioWav).Length -le 44) {
+        throw 'Could not prepare the final packaged MP3 for independent speech transcription.'
     }
     Copy-Item -LiteralPath $AudioReport -Destination (Join-Path $EvidenceRoot 'audio-smoke-report.json') -Force
     Copy-Item -LiteralPath $AudioMp3 -Destination (Join-Path $EvidenceRoot 'packaged-qwen-smoke.mp3') -Force
@@ -171,10 +184,24 @@ try {
     }
     $RelocatedAudio = Get-Content -Raw -LiteralPath $RelocatedAudioReport | ConvertFrom-Json
     if ($RelocatedAudioExitCode -ne 0 -or -not $RelocatedAudio.ok) { throw 'Relocated package audio smoke reported a failure.' }
+    if ([string]$RelocatedAudio.text -ne $ExpectedAudioText) {
+        throw "Relocated Qwen audio report does not preserve the expected text: $($RelocatedAudio.text)"
+    }
+    $RelocatedAudioCue = Join-Path $RelocatedAudioOutput 'metadata/verse_timestamps/Genesis_001.json'
+    if (-not (Test-Path $RelocatedAudioCue -PathType Leaf)) { throw 'Relocated Qwen audio cue is missing.' }
+    $RelocatedCuePayload = Get-Content -Raw -LiteralPath $RelocatedAudioCue | ConvertFrom-Json
+    if (@($RelocatedCuePayload.segments).Count -ne 1 -or [string]$RelocatedCuePayload.segments[0].text -ne $ExpectedAudioText) {
+        throw 'Relocated Qwen MP3 cue does not preserve the exact expected speech text.'
+    }
     $RelocatedFfmpeg = Join-Path $RelocatedDriveRoot '_internal/ffmpeg.exe'
     $RelocatedMp3 = Join-Path $RelocatedAudioOutput 'Genesis/Genesis_001.mp3'
     & $RelocatedFfmpeg -hide_banner -loglevel error -i $RelocatedMp3 -f null NUL
     if ($LASTEXITCODE -ne 0) { throw 'Relocated package FFmpeg could not decode its generated MP3.' }
+    $RelocatedDecodedWav = Join-Path $EvidenceRoot 'relocated-qwen-smoke-decoded.wav'
+    & $RelocatedFfmpeg -hide_banner -loglevel error -y -i $RelocatedMp3 -vn -ac 1 -ar 24000 -c:a pcm_s16le $RelocatedDecodedWav
+    if ($LASTEXITCODE -ne 0 -or -not (Test-Path $RelocatedDecodedWav -PathType Leaf) -or (Get-Item $RelocatedDecodedWav).Length -le 44) {
+        throw 'Could not prepare the relocated final MP3 for independent speech transcription.'
+    }
 
     Copy-Item -LiteralPath $RelocatedSelfReport -Destination (Join-Path $EvidenceRoot 'relocated-self-test-report.json') -Force
     Copy-Item -LiteralPath $RelocatedAudioReport -Destination (Join-Path $EvidenceRoot 'relocated-audio-smoke-report.json') -Force
@@ -214,6 +241,9 @@ try {
         package_real_qwen_audio_smoke = 'passed'
         qwen_audio_sample_rate = [int]$Audio.sample_rate
         qwen_audio_sample_count = [int]$Audio.samples
+        qwen_audio_smoke_text = $ExpectedAudioText
+        speech_transcript_check = 'pending'
+        speech_transcript_model = 'openai/whisper-tiny.en@87c7102498dcde7456f24cfd30239ca606ed9063'
         package_mp3_decode = 'passed'
         relocated_drive_letter = $DriveLetter
         relocated_self_test = 'passed'
