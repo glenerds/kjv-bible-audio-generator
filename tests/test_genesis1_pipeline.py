@@ -90,10 +90,10 @@ def test_real_cross_chapter_voice_script_checks_persistent_narrator_profile():
         'design_speakers != ["adam", "narrator"]',
         'clone_speakers != ["adam", "narrator"]',
         "GENUINE_QWEN_CROSS_CHAPTER_VOICE_IDENTITY_PASSED",
-        "SyntheticTestBackend",
         "offline_inference",
     ):
         assert token in script
+    assert "SyntheticTestBackend" not in script
     assert fixture.count("Genesis 1:1 ") == 1
     assert fixture.count("Genesis 2:23 ") == 1
     assert "not a Bible import" in source_note
