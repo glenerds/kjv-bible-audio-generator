@@ -1,13 +1,13 @@
-# Engineering Checkpoint — KJV Bible Audio Generator 0.4.11 (native Windows sparse test-fixture follow-up)
+# Engineering Checkpoint — 0.4.11: NTFS sparse allocation diagnostic
 
 Date: 2026-11-24
 
-- Canonical 0.4.10 developer ZIP SHA-256: 4c9dffa08d75e8ee2efb60f9fa561311d3501f515dbf650e233f15ebd2cc07f9; 73 entries, ZIP integrity PASS.
-- Public repo reconciliation: all 72 non-README archive files match Git blob SHAs exactly; README is intentionally updated; the repo has three AI-review-only documents.
-- Clean extraction compileall PASS; 0.4.10 source baseline 123 tests passed.
-- 0.4.11 adds the explicit torch dev dependency, a CI matrix (Windows/Python 3.12 and Ubuntu/Python 3.13), CI-only FFmpeg provisioning and regression checks.
-- Hosted Ubuntu after setup corrections: 125 tests passed.
-- Hosted Windows after setup corrections: dependencies and compileall passed; pytest ran but filled disk. Root cause: fake Qwen weight test fixtures used truncate, sparse by default on Linux but fully allocated on Windows. Added _truncate_sparse_file() using Windows FSCTL_SET_SPARSE / DeviceIoControl before truncating. Local compileall PASS and 125 tests passed after patch.
-- Wait for the next Windows Actions job result, including PowerShell script AST parse.
+- Version 0.4.11 project source remains unchanged; this pass adds a Windows-only test diagnostic and workflow step.
+- Two Windows runs with the FSCTL_SET_SPARSE helper were marked failed, but GitHub's job API still showed the test step as in_progress and log archive retrieval failed with BlobNotFound. Cannot infer the actual exception or confirm sparse allocation based on those records.
+- Both runs installed dependencies, passed compileall and progressed to the full Windows test step.
+- Ubuntu passed the full 125-test suite after PyTorch and FFmpeg test setup.
+- Added a Windows-only regression check that verifies both fake weights retain their logical sizes, carry FILE_ATTRIBUTE_SPARSE_FILE, and allocate less than 1 MiB on disk according to GetCompressedFileSizeW.
+- Added a dedicated Windows CI step to run this test before the full suite. Linux skips this NTFS-only check.
+- Next: run local compileall/full suite; inspect focused Windows sparse smoke result; then full Windows suite and PowerShell parser. Don't claim native Windows pass until all complete.
 
-No genuine Qwen inference/Genesis speech, model asset download and hash, customer Windows PyInstaller app, bundled approved FFmpeg, offline playback, USB relocation, CPU/RAM performance, complete 1,189 chapter run, KJV-specific dialogue review or complete licensing audit has passed.
+No genuine Qwen inference, Windows application build, bundled LGPL FFmpeg approval, offline playback, USB relocation or production-generation benchmark has passed.

@@ -43,6 +43,9 @@ jobs:
       - name: Compile source and tests
         run: python -m compileall -q src tests tools
 
+      - name: Verify NTFS sparse model test fixtures before full suite
+        run: python -m pytest -q tests/test_qwen_adapter.py::test_fake_qwen_weight_fixtures_are_sparse_on_windows
+
       - name: Run full automated test suite on native Windows
         run: python -m pytest -q
 

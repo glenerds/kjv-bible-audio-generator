@@ -1,3 +1,21 @@
+# Windows CI diagnostic update — 2026-11-24 (verify NTFS sparse fixture allocation)
+
+Two hosted Windows executions of the sparse-fixture patch were marked failed by GitHub, but the job metadata left the pytest step in an impossible "in_progress" state and the job-log storage endpoint returned a missing-log error. Both runs had installed dependencies and passed compileall. Ubuntu passed 125 tests. Because we cannot inspect the lost Windows logs, we must not assert that the fixture fix is correct or claim a Windows test result.
+
+A direct Windows regression/diagnostic was added:
+- After creating the fake 3.5 GB and 650 MB Qwen weight files, it checks the Windows sparse-file attribute and calls GetCompressedFileSizeW.
+- It asserts logical file size is correct and physical allocation remains below 1 MiB.
+- The Windows Actions workflow runs this focused test in its own step before the full suite, so a sparse-fixture failure will be isolated and visible.
+- On Linux the test is explicitly skipped; it does not alter or reduce the 125-test software coverage.
+
+Latest local checks after adding the diagnostic:
+- `python -m compileall -q src tests tools` — pending in this commit.
+- Full Linux suite — pending in this commit.
+- Latest previously verified full Linux run — 125 passed.
+- Windows/NTFS allocation and full suite — pending.
+
+---
+
 # Continuation update — 2026-11-24 (pre-work: verify latest Windows run and resume engineering)
 
 This note is written before the next engineering actions, as requested.

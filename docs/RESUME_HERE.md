@@ -1,3 +1,9 @@
+## Windows CI diagnostic follow-up — explicit sparse allocation test
+
+The latest Windows job records are marked failed while the pytest step remains "in_progress"; the log-storage endpoint reports BlobNotFound. The exact failing assertion is therefore unknown. Ubuntu passed 125 tests. Added a Windows-only test that validates the sparse file attribute and actual on-disk allocation with GetCompressedFileSizeW, and an isolated Windows workflow step runs that test before the full suite. Linux skips this NTFS-only test. Do not claim the Windows fixture fix is verified until this focused step and the full Windows suite complete.
+
+---
+
 ## Native Windows CI follow-up — sparse Qwen test fixtures
 
 The hosted Windows/Python 3.12 job installed Python, FFmpeg, PyTorch and project dev dependencies, then passed compileall. During full tests it exhausted disk space: Qwen adapter fixtures created multi-gigabyte fake weights via Path.truncate(), which is sparse on Linux but allocates real disk blocks on Windows. Fixed tests/test_qwen_adapter.py with _truncate_sparse_file(), which calls NTFS FSCTL_SET_SPARSE before extending Windows fixture files. Local revalidation: compileall PASS; 125 tests passed on Linux. Latest hosted Ubuntu run passed 125 tests. Recheck the new Windows run and its PowerShell parse step before claiming native Windows source-test acceptance.

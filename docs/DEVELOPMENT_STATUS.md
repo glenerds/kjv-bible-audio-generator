@@ -1,3 +1,9 @@
+## Windows CI diagnostic follow-up — 2026-11-24
+
+The two latest Windows attempts did not produce usable test logs: GitHub marked the job failed while its test step remained "in_progress", and the log archive lookup returned BlobNotFound. Dependency installation and compileall passed; Ubuntu's full 125-test run passed. Added an explicit Windows-only sparse-fixture check (NTFS sparse attribute + GetCompressedFileSizeW allocation) as a separate step before the full Windows suite. The result will clarify whether the large sparse model fixtures still consume disk or whether another runner failure exists. Windows acceptance remains unverified.
+
+---
+
 ## Native Windows CI follow-up — 2026-11-24
 
 Windows/Python 3.12 installed its test dependencies and compiled source, but its full test step exhausted the runner disk. The Qwen adapter tests create fake 3.5 GB / 650 MB model weights with Path.truncate; unlike Linux, the Windows filesystem allocated real blocks. Added a fixture helper that explicitly marks those NTFS files sparse with FSCTL_SET_SPARSE (DeviceIoControl) before truncation. Local compileall and full suite re-run passed: 125 tests. Latest hosted Ubuntu run also passed all 125 tests. The new Windows hosted run and PowerShell parse are pending.

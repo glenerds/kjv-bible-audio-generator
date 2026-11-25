@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import sys
 import types
+import ctypes
 
 import numpy as np
+import pytest
 import torch
 
 from kjv_audio_generator.backend import QwenSettings, QwenVoiceBackend
@@ -587,3 +589,44 @@ def test_old_prompt_without_transcript_cannot_be_reused_when_external_wav_is_mis
     restarted = QwenVoiceBackend(QwenSettings(design, base, "cpu"), assets)
     with pytest.raises(QwenRuntimeUnavailable, match="verified saved voice prompt is unavailable"):
         restarted.prepare_profiles([profile])
+
+
+def _windows_file_allocated_bytes(path):
+    from ctypes import wintypes
+
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    get_size = kernel32.GetCompressedFileSizeW
+    get_size.argtypes = [wintypes.LPCWSTR, ctypes.POINTER(wintypes.DWORD)]
+    get_size.restype = wintypes.DWORD
+    high = wintypes.DWORD(0)
+    ctypes.set_last_error(0)
+    low = get_size(str(path), ctypes.byref(high))
+    if low == 0xFFFFFFFF and ctypes.get_last_error() != 0:
+        raise ctypes.WinError(ctypes.get_last_error())
+    return (high.value << 32) | int(low)
+
+
+def test_fake_qwen_weight_fixtures_are_sparse_on_windows(tmp_path):
+    if sys.platform != "win32":
+        pytest.skip("NTFS sparse-file allocation check is Windows-only")
+
+    model = make_fake_model_folder(tmp_path / "Qwen3-TTS-12Hz-1.7B-Base")
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    get_attributes = kernel32.GetFileAttributesW
+    from ctypes import wintypes
+    get_attributes.argtypes = [wintypes.LPCWSTR]
+    get_attributes.restype = wintypes.DWORD
+
+    for relative, expected_size in (
+        ("model.safetensors", 3_500_000_000),
+        ("speech_tokenizer/model.safetensors", 650_000_000),
+    ):
+        path = model / relative
+        assert path.stat().st_size == expected_size
+        attributes = get_attributes(str(path))
+        assert attributes != 0xFFFFFFFF, ctypes.WinError(ctypes.get_last_error())
+        assert attributes & 0x00000200, f"{path} is not marked as a sparse file"
+        allocated = _windows_file_allocated_bytes(path)
+        assert allocated < 1024 * 1024, (
+            f"{path} reserves {allocated:,} bytes on disk for a {expected_size:,}-byte sparse fixture"
+        )
