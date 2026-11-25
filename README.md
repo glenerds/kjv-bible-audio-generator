@@ -1,3 +1,28 @@
+# Continuation checkpoint — 2026-11-25 (frozen Windows diagnostics and retest)
+
+This latest checkpoint is newer than the previous handoff below.
+
+## Current branch and CI
+- Current starting head: `d456a6c24a3daee6f6ea4784f417bcb795aefa7b`.
+- Added module-level `Path` import in `tests/test_gui_cli.py`, fixing the prior `NameError` in the native package acceptance test.
+- The frozen `tools/entrypoint.py` now optionally writes startup/exit diagnostics when `KJV_APP_DIAGNOSTICS_FILE` is set. It captures argv, executable, cwd, frozen state, stdout/stderr availability, exit code and traceback without changing normal app behavior. `windows_package_acceptance.ps1` records diagnostics for original and relocated self-test/audio-smoke launches.
+- Updated static tests to match the diagnostics-enabled launcher and the actual quoted relocation command (`subst {0} "{1}"`).
+- Source run `45649904856` on this head: Ubuntu **145 passed, 4 skipped**. Native Windows full suite is still running; NTFS fixture precheck and compile passed.
+- Native Windows package run `45649904906` is still in the build/acceptance step. Earlier package runs `45649012489` and `45649421230` are also still active. None has yet produced a final accepted result or uploadable package evidence.
+
+## Already verified audio milestone
+The genuine offline Qwen CPU run `45639088515` completed successfully on the previous source head. Both pinned 1.7B model checkpoints and tokenizers passed full-file SHA-256. The real production worker generated all 31 Genesis 1 verses into a 96 kbps, 3,032,397-byte MP3 with 33 timestamped segments (31 narrator, 2 reviewed God speech), exact verse-text checks, MP3 decode and non-silence checks. Runtime was 1,298.381 seconds on the hosted CPU runner; the artifact and full hashes are documented in the handoff below. This does not prove listening quality or cross-chapter voice identity.
+
+## Immediate next
+1. Confirm the current Windows source suite and PowerShell parse checks pass.
+2. Inspect the frozen package run's diagnostics. If the process does not enter the CLI, use its argv/launch record to correct the PyInstaller startup path. If it enters and raises, fix the actual traceback.
+3. Rerun package acceptance until self-test, short real Qwen audio, MP3 decode, relocation and relocated audio all pass.
+4. If the package succeeds, inspect uploaded evidence and verify the executable, bundled FFmpeg, models, generated MP3s and manifests; keep offline Windows and physical USB testing open if not exercised.
+
+**Release status remains developer prototype, not ready for user/customer testing.** The Linux CPU Genesis chapter pipeline is real and passed. Native Windows frozen app acceptance is still pending.
+
+---
+
 # Continuation handoff — 2026-11-25 (real Genesis 1 passed; Windows package acceptance under repair)
 
 This recovery note supersedes older status statements below.
