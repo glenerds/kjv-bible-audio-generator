@@ -128,10 +128,6 @@ def main() -> int:
     verse_one = chapters[0].verses[0]
     verse_adam = chapters[1].verses[0]
     expected_one = "In the beginning God created the heaven and the earth."
-    expected_adam = (
-        "And Adam said, This is now bone of my bones, and of my flesh; "
-        "she shall be called Woman, because she was taken out of Man."
-    )
     if verse_one.ref.label() != "Genesis 1:1" or verse_one.text != expected_one:
         raise RuntimeError("Genesis 1:1 cross-chapter fixture differs from the approved KJV text.")
     expected_adam = (
@@ -149,7 +145,7 @@ def main() -> int:
             {
                 "speaker_id": "adam",
                 "text": (
-                    "This is now bone of my bones, and flesh of my flesh; "
+                    "This is now bone of my bones, and flesh of my flesh: "
                     "she shall be called Woman, because she was taken out of Man."
                 ),
             },
