@@ -190,6 +190,7 @@ foreach ($RequiredTerm in @('University of Tennessee','University of California'
         throw "Downloaded cuDNN acknowledgements are missing a required third-party notice: $RequiredTerm"
     }
 }
+$CudnnUtf8NoBom = New-Object -TypeName System.Text.UTF8Encoding -ArgumentList $false
 $CudnnNoticeManifest = @{
     schema_version = 1
     cudnn_archive = 'cudnn-windows-x86_64-9.7.0.66_cuda12-archive.zip'
@@ -204,7 +205,7 @@ $CudnnManifestJson = $CudnnNoticeManifest | ConvertTo-Json -Depth 5
 [System.IO.File]::WriteAllText(
     (Join-Path $LicenseDir 'NVIDIA_CUDNN_NOTICE_MANIFEST.json'),
     $CudnnManifestJson + [Environment]::NewLine,
-    $Utf8NoBom
+    $CudnnUtf8NoBom
 )
 
 $ManifestModels = @()
