@@ -883,6 +883,9 @@ def test_windows_cu128_build_requires_exact_cudnn_9102_runtime():
     builder = (root / "tools" / "build_windows.ps1").read_text(encoding="utf-8")
     for token in (
         "$TorchVariant -eq 'cu128'",
+        "torch.version.cuda",
+        "$TorchCudaRuntimeVersion -ne '12.8'",
+        "The cu128 package must use the CUDA 12.8 PyTorch wheel",
         "torch.backends.cudnn.version()",
         "$CudnnRuntimeVersion -ne '9.10.2'",
         "pinned cuDNN 9.10.2.21 runtime family",
