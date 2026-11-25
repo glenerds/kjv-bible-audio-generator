@@ -134,8 +134,12 @@ def main() -> int:
     )
     if verse_one.ref.label() != "Genesis 1:1" or verse_one.text != expected_one:
         raise RuntimeError("Genesis 1:1 cross-chapter fixture differs from the approved KJV text.")
-    if verse_adam.ref.label() != "Genesis 2:23":
-        raise RuntimeError("The Adam test verse must be Genesis 2:23.")
+    expected_adam = (
+        "And Adam said, This is now bone of my bones, and flesh of my flesh; "
+        "she shall be called Woman, because she was taken out of Man."
+    )
+    if verse_adam.ref.label() != "Genesis 2:23" or verse_adam.text != expected_adam:
+        raise RuntimeError("Genesis 2:23 cross-chapter fixture differs from the approved KJV text.")
 
     # KJV prose does not consistently delimit dialogue with quotation marks. This
     # reviewed test split is required to preserve every source character.
@@ -221,10 +225,9 @@ def main() -> int:
         return original_synthesize(text, profile)
 
     backend.synthesize = tracked_synthesize  # type: ignore[method-assign]
-    chapter_hashes = worker._build_chapter_input_hashes()
-    if set(chapter_hashes) != {("Genesis", 1), ("Genesis", 2)}:
-        raise RuntimeError("Worker did not construct fingerprints for both test chapters.")
     worker.start(background=False)
+    if set(worker._chapter_segments) != {("Genesis", 1), ("Genesis", 2)}:
+        raise RuntimeError("Worker did not construct speech segments for both test chapters.")
     if worker.error is not None:
         raise RuntimeError(f"Chapter worker failed: {type(worker.error).__name__}: {worker.error}")
 
