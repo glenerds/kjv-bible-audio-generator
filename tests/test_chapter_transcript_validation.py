@@ -1,41 +1,57 @@
 from __future__ import annotations
 
+import contextlib
+import json
+import sys
+import types
 from pathlib import Path
 
+import numpy as np
 import pytest
 
+from kjv_audio_generator.parser import parse_path
 from tools.verify_chapter_transcript import (
     assess_chapter_transcript,
+    transcribe_long_audio,
     validate_chapter_cues,
 )
 
+ROOT = Path(__file__).resolve().parents[1]
+GENESIS_SOURCE = ROOT / "examples" / "genesis_1_kjv_test.txt"
 
-def test_genesis_one_cues_reconstruct_all_31_source_verses_exactly():
-    root = Path(__file__).resolve().parents[1]
-    source = root / "examples" / "genesis_1_kjv_test.txt"
+
+def _make_cue(chapter, *, split_verse: bool = False) -> dict:
     segments = []
-    document_text = source.read_text(encoding="utf-8")
-    from kjv_audio_generator.parser import parse_path
-    chapter = parse_path(source).chapter("Genesis", 1)
+    cursor = 0.0
     for verse in chapter.verses:
-        segments.append({
-            "reference": verse.ref.label(),
-            "text": verse.text,
-            "start_seconds": len(segments) * 1.0,
-            "end_seconds": len(segments) * 1.0 + 0.5,
-        })
-    cue = root / "tests" / "_temp_genesis1_cues_fixture.json"
-    import json
-    cue.write_text(json.dumps({
+        parts = [verse.text]
+        if split_verse and verse.ref.label() == "Genesis 1:3":
+            parts = ["And God said, ", "Let there be light: and there was light."]
+        for part in parts:
+            start = cursor
+            end = start + 0.5
+            segments.append({
+                "reference": verse.ref.label(),
+                "text": part,
+                "start_seconds": round(start, 3),
+                "end_seconds": round(end, 3),
+            })
+            cursor = end + 0.12
+    return {
         "book": "Genesis",
         "chapter": 1,
-        "duration_seconds": 31.5,
+        "duration_seconds": segments[-1]["end_seconds"],
         "segments": segments,
-    }), encoding="utf-8")
-    try:
-        result = validate_chapter_cues(source, cue)
-    finally:
-        cue.unlink(missing_ok=True)
+    }
+
+
+def test_genesis_one_cues_reconstruct_all_31_source_verses_exactly(tmp_path):
+    chapter = parse_path(GENESIS_SOURCE).chapter("Genesis", 1)
+    cue_path = tmp_path / "genesis1-cues.json"
+    cue_path.write_text(json.dumps(_make_cue(chapter)), encoding="utf-8")
+
+    result = validate_chapter_cues(GENESIS_SOURCE, cue_path)
+
     assert result["source_verse_count"] == 31
     assert result["unique_verse_count"] == 31
     assert result["cue_segment_count"] == 31
@@ -43,54 +59,41 @@ def test_genesis_one_cues_reconstruct_all_31_source_verses_exactly():
 
 
 def test_genesis_one_cue_validation_rejects_missing_verse(tmp_path):
-    root = Path(__file__).resolve().parents[1]
-    source = root / "examples" / "genesis_1_kjv_test.txt"
-    from kjv_audio_generator.parser import parse_path
-    chapter = parse_path(source).chapter("Genesis", 1)
-    segments = [
-        {
-            "reference": verse.ref.label(),
-            "text": verse.text,
-            "start_seconds": index * 1.0,
-            "end_seconds": index * 1.0 + 0.5,
-        }
-        for index, verse in enumerate(chapter.verses[:-1])
-    ]
-    cue = tmp_path / "missing.json"
-    import json
-    cue.write_text(json.dumps({"book": "Genesis", "chapter": 1, "segments": segments}), encoding="utf-8")
+    chapter = parse_path(GENESIS_SOURCE).chapter("Genesis", 1)
+    cue = _make_cue(chapter)
+    cue["segments"] = cue["segments"][:-1]
+    cue["duration_seconds"] = cue["segments"][-1]["end_seconds"]
+    cue_path = tmp_path / "missing.json"
+    cue_path.write_text(json.dumps(cue), encoding="utf-8")
+
     with pytest.raises(ValueError, match="coverage/order"):
-        validate_chapter_cues(source, cue)
+        validate_chapter_cues(GENESIS_SOURCE, cue_path)
 
 
-def test_genesis_one_cue_validation_accepts_split_verse_segments():
-    root = Path(__file__).resolve().parents[1]
-    source = root / "examples" / "genesis_1_kjv_test.txt"
-    from kjv_audio_generator.parser import parse_path
-    chapter = parse_path(source).chapter("Genesis", 1)
-    segments = []
-    for verse in chapter.verses:
-        if verse.ref.label() == "Genesis 1:3":
-            parts = ["And God said, ", "Let there be light: and there was light."]
-        else:
-            parts = [verse.text]
-        for part in parts:
-            index = len(segments)
-            segments.append({
-                "reference": verse.ref.label(),
-                "text": part,
-                "start_seconds": index * 0.5,
-                "end_seconds": index * 0.5 + 0.25,
-            })
-    cue = root / "tests" / "_temp_split_genesis1_cues_fixture.json"
-    import json
-    cue.write_text(json.dumps({"book": "Genesis", "chapter": 1, "segments": segments}), encoding="utf-8")
-    try:
-        result = validate_chapter_cues(source, cue)
-    finally:
-        cue.unlink(missing_ok=True)
+def test_genesis_one_cue_validation_accepts_split_verse_segments(tmp_path):
+    chapter = parse_path(GENESIS_SOURCE).chapter("Genesis", 1)
+    cue_path = tmp_path / "genesis1-split-cues.json"
+    cue_path.write_text(
+        json.dumps(_make_cue(chapter, split_verse=True)),
+        encoding="utf-8",
+    )
+
+    result = validate_chapter_cues(GENESIS_SOURCE, cue_path)
+
     assert result["cue_segment_count"] == 32
     assert result["source_verse_count"] == 31
+
+
+def test_genesis_one_cue_validation_rejects_overlapping_or_nonchronological_cues(tmp_path):
+    chapter = parse_path(GENESIS_SOURCE).chapter("Genesis", 1)
+    cue = _make_cue(chapter)
+    cue["segments"][1]["start_seconds"] = 0.25
+    cue["segments"][1]["end_seconds"] = 0.75
+    cue_path = tmp_path / "overlap.json"
+    cue_path.write_text(json.dumps(cue), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="overlapping cue timing"):
+        validate_chapter_cues(GENESIS_SOURCE, cue_path)
 
 
 def test_long_form_chapter_transcript_requires_opening_and_final_verse():
@@ -103,6 +106,7 @@ def test_long_form_chapter_transcript_requires_opening_and_final_verse():
     assert complete["passed"] is True
     assert complete["prefix_phrase_present"] is True
     assert complete["trailing_phrase_present"] is True
+
     truncated = assess_chapter_transcript(
         expected,
         "In the beginning God created the heaven and the earth. "
@@ -121,15 +125,8 @@ def test_long_form_chapter_transcript_rejects_unrelated_or_too_short_text():
     )
     assert result["passed"] is False
 
+
 def test_long_form_transcriber_uses_whisper_native_long_audio_mode(monkeypatch):
-    import contextlib
-    import sys
-    import types
-
-    import numpy as np
-
-    from tools.verify_chapter_transcript import transcribe_long_audio
-
     calls = {}
 
     class FakeProcessor:
@@ -187,10 +184,10 @@ def test_long_form_transcriber_uses_whisper_native_long_audio_mode(monkeypatch):
     assert calls["generate_kwargs"]["input_features"] == "features"
     assert calls["generate_kwargs"]["attention_mask"] == "mask"
 
+
 def test_genesis_transcript_failure_still_preserves_audio_and_cross_chapter_evidence():
-    root = Path(__file__).resolve().parents[1]
     workflow = (
-        root / ".github" / "workflows" / "qwen-real-inference.yml"
+        ROOT / ".github" / "workflows" / "qwen-real-inference.yml"
     ).read_text(encoding="utf-8")
 
     verify_name = "- name: Verify complete Genesis 1 narration with pinned long-form Whisper"
