@@ -1,808 +1,673 @@
-from pathlib import Path
-import sys
-import json
+from __future__ import annotations
+
 import os
-import shutil
 import subprocess
+import sys
+import tkinter as tk
+
 import pytest
 
-
-def test_asset_preparation_pins_qwen_models_and_checks_all_required_files():
-    root = Path(__file__).resolve().parents[1]
-    script = (root / "tools" / "prepare_assets.ps1").read_text(encoding="utf-8")
-    helper = (root / "tools" / "qwen_asset_integrity.py").read_text(encoding="utf-8")
-    assert "report --models-root" in script
-    assert "qwen_asset_integrity.py" in script
-    for token in (
-        "391e8db219f292c515297cdceeb43e4eae67cdde35fa57e79a6a8a532fca0522",
-        "38fc7fc51c5e776e840414b6fd443962e9411b9654888fd7913e4da643cb857c",
-        "836b7b357f5ea43e889936a3709af68dfe3751881acefe4ecf0dbd30ba571258",
-    ):
-        assert token in helper
-    for token in (
-        "Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign",
-        "5ecdb67327fd37bb2e042aab12ff7391903235d3",
-        "Qwen/Qwen3-TTS-12Hz-1.7B-Base",
-        "fd4b254389122332181a7c3db7f27e918eec64e3",
-        "generation_config.json",
-        "speech_tokenizer/configuration.json",
-        "speech_tokenizer/model.safetensors",
-        "3500000000",
-        "650000000",
-        "KJV_QWEN_ASSET_MANIFEST.json",
-        "ConvertTo-Json -Depth 8",
-        "System.Text.UTF8Encoding",
-        "WriteAllText($ManifestPath",
-    ):
-        assert token in script
+from kjv_audio_generator.app import GeneratorApp
+from kjv_audio_generator.__main__ import main as cli_main
 
 
-def test_asset_preparation_pins_and_verifies_speaker_data_and_licenses():
-    root = Path(__file__).resolve().parents[1]
-    script = (root / "tools" / "prepare_assets.ps1").read_text(encoding="utf-8")
-    for token in (
-        "b09e308a3a1aafdb7d6c75baf0fe2a31d61601da",
-        "25adc6c12d49f3328ddcb21436ff05ea03cdc390",
-        "c6c7ddfcb419378b396a863abb312a727abbfcda",
-        "3fd9f2363dab97473dcac24c7723b09ba6b9f295",
-        "GLYSSEN_MIT.txt",
-        "QWEN3_TTS_APACHE_2.0.txt",
-    ):
-        assert token in script
-    assert "Get-GitBlobSha1" in script
-    assert "KJV_QWEN_ASSET_MANIFEST.json" in script
+def test_gui_creates_widgets_and_validates_pasted_text():
+    try:
+        root = tk.Tk()
+    except tk.TclError:
+        pytest.skip("No graphical display")
+    app = GeneratorApp(root)
+    app.text.insert("1.0", "Genesis 1:1 In the beginning.")
+    app._validate()
+    assert "1 chapters" in app.status.get()
+    root.destroy()
 
 
-def test_windows_build_prepares_pinned_assets_before_pyinstaller():
+def test_cli_self_test_returns_expected_fail_closed_without_models(tmp_path, monkeypatch, capsys):
+    monkeypatch.setattr(sys,"argv",["kjv-audio-generator","--self-test","--models",str(tmp_path/"models"),"--output",str(tmp_path/"out")])
+    assert cli_main() == 2
+    payload = __import__("json").loads(capsys.readouterr().out)
+    assert payload["ok"] is False
+    assert payload["checks"]["voice_design_model"] is False
+    assert payload["checks"]["base_model"] is False
+    assert payload["checks"]["model_asset_manifest"] is False
+    assert payload["checks"]["qwen_runtime"] is False
+    assert payload["checks"]["ffmpeg"] is False
+
+
+def test_cli_real_audio_smoke_refuses_missing_qwen_models(tmp_path, monkeypatch, capsys):
+    monkeypatch.setattr(sys, "argv", [
+        "kjv-audio-generator", "--audio-smoke", "--models", str(tmp_path / "models"),
+        "--output", str(tmp_path / "out"),
+    ])
+    assert cli_main() == 3
+    assert "Real Qwen audio smoke failed" in capsys.readouterr().err
+
+
+def test_packaging_recipe_includes_models_audio_encoder_and_portable_launcher():
+    from pathlib import Path
     root = Path(__file__).resolve().parents[1]
     script = (root / "tools" / "build_windows.ps1").read_text(encoding="utf-8")
-    assert "pip install -e '.[qwen,dev]'" in script
-    assert "prepare_assets.ps1" in script
-    assert script.index("prepare_assets.ps1") < script.index("-m PyInstaller")
-    assert "QWEN3_TTS_APACHE_2.0.txt" in script
-    assert "KJV_QWEN_ASSET_MANIFEST.json" in script
-    assert "speech_tokenizer_config_sha256" in script
-    assert "Pinned Qwen model files no longer match" in script
-    assert "qwen_asset_integrity.py" in script
-    assert "verify --models-root $Models --manifest $AssetManifestPath" in script
-    assert "Pinned Qwen weight SHA-256 or manifest verification failed" in script
-
-
-def test_windows_build_requires_pinned_python_and_explicit_torch_variant():
-    root = Path(__file__).resolve().parents[1]
-    script = (root / "tools" / "build_windows.ps1").read_text(encoding="utf-8")
-    for token in (
-        "ValidateSet('cpu','cu128')",
-        "PythonMinor -ne '3.12'",
-        "PythonBits -ne '64'",
-        "$TorchVersion = '2.10.0'",
-        '"torch==$TorchVersion" "torchaudio==$TorchVersion"',
-        "https://download.pytorch.org/whl/cpu",
-        "https://download.pytorch.org/whl/cu128",
-        "--collect-all huggingface_hub",
-        "--collect-all torchaudio",
-    ):
+    launcher = (root / "START_KJV_AUDIO_GENERATOR.bat").read_text(encoding="utf-8")
+    for token in ("--onedir", "--add-data", "--add-binary", "--collect-all torch", "--collect-all qwen_tts", "--collect-all librosa", "--collect-all torchaudio", "--collect-all accelerate", "speech_tokenizer/model.safetensors"):
         assert token in script
+    assert "Qwen3-TTS-12Hz-1.7B-VoiceDesign" in script
+    assert "Qwen3-TTS-12Hz-1.7B-Base" in script
+    assert "ffmpeg.exe" in script
+    assert "kjv_audio_generator/data" in script
+    app_source = (root / "src" / "kjv_audio_generator" / "app.py").read_text(encoding="utf-8")
+    assert "does not authenticate the translation wording" in app_source
+    assert "LICENSES" in script
+    assert "portable" in script
+    assert "START_KJV_AUDIO_GENERATOR.bat" in script
+    assert "developer source tree" in launcher.casefold()
 
 
-def test_windows_build_fails_closed_without_verified_lgpl_ffmpeg():
-    root = Path(__file__).resolve().parents[1]
-    script = (root / "tools" / "build_windows.ps1").read_text(encoding="utf-8")
-    for token in (
-        "FFMPEG_LICENSE.txt",
-        "FFMPEG_BUILD_MANIFEST.json",
-        "Get-FileHash -Algorithm SHA256",
-        "LGPL-2.1-or-later",
-        "LGPL-3.0-or-later",
-        "--enable-gpl|--enable-nonfree",
-        "GNU Lesser General Public License",
-        "ExpectedLicenseVersion",
-        "LGPL-3.0-or-later",
-        "license_sha256",
-        "ActualLicenseHash",
-        "libmp3lame",
-        "probe.mp3",
-        "-f null NUL",
-    ):
-        assert token in script
-    assert "FFMPEG_BUILD_MANIFEST.template.json" in (root / "LICENSES" / "README_FFMPEG.md").read_text(encoding="utf-8") or \
-        "FFMPEG_BUILD_MANIFEST.template.json" in (root / "LICENSES" / "FFMPEG_BUILD_MANIFEST.template.json").read_text(encoding="utf-8")
-
-
-def test_project_version_is_consistent():
-    root = Path(__file__).resolve().parents[1]
-    pyproject = (root / "pyproject.toml").read_text(encoding="utf-8")
-    package_init = (root / "src" / "kjv_audio_generator" / "__init__.py").read_text(encoding="utf-8")
-    assert 'version = "0.4.12"' in pyproject
-    assert '__version__ = "0.4.12"' in package_init
-
-
-def test_hf_download_cli_version_stays_compatible_with_pinned_transformers():
-    root = Path(__file__).resolve().parents[1]
-    script = (root / "tools" / "prepare_assets.ps1").read_text(encoding="utf-8")
-    pyproject = (root / "pyproject.toml").read_text(encoding="utf-8")
-    assert "huggingface_hub>=0.34,<1.0" in script
-    assert "transformers==4.57.3" in pyproject
-
-
-def test_ffmpeg_documentation_records_audited_candidate_and_pending_distribution_review():
-    root = Path(__file__).resolve().parents[1]
-    readme = (root / "LICENSES" / "README_FFMPEG.md").read_text(encoding="utf-8")
-    candidate_sha = "78d1f7728fef503b50a6de5866950a96d7e4db0fdb9dfaa47fc2c6691a48370b"
-    source_commit = "b9ebe81995b58cd4e3177a6c0ad5dc2392f7f7fd"
-    assert candidate_sha in readme
-    assert source_commit in readme
-    assert "configuration included `--enable-version3` and `--enable-libmp3lame`" in readme
-    assert "verified the archive size and hash" in readme
-    assert "not yet approved for application distribution" in readme
-
-
-def test_windows_builder_requires_complete_hash_manifest_for_ffmpeg_dependency_notices():
-    root = Path(__file__).resolve().parents[1]
-    script = (root / "tools" / "build_windows.ps1").read_text(encoding="utf-8")
-    assert "ffmpeg_notices.py') verify" in script
-    importer = (root / "tools" / "import_ffmpeg_notices.ps1").read_text(encoding="utf-8")
-    assert "ffmpeg_notices.py') import" in importer
-    helper = (root / "tools" / "ffmpeg_notices.py").read_text(encoding="utf-8")
-    for token in ("MANIFEST.json", "sha256", "unlisted", "is_symlink", "PurePosixPath"):
-        assert token in helper
-
-
-def test_ffmpeg_notice_import_and_verification_hash_every_file(tmp_path):
-    import json
-    import subprocess
+def test_runtime_root_uses_pyinstaller_data_folder(monkeypatch, tmp_path):
     import sys
-
-    root = Path(__file__).resolve().parents[1]
-    source = tmp_path / "ffmpeg-package"
-    (source / "doc" / "licenses").mkdir(parents=True)
-    (source / "doc" / "README.txt").write_text("FFmpeg docs\n", encoding="utf-8")
-    (source / "doc" / "licenses" / "libx.txt").write_text("Example dependency notice\n", encoding="utf-8")
-    (source / "LICENSE.txt").write_text("GNU Lesser General Public License version 3\n", encoding="utf-8")
-    licenses = tmp_path / "LICENSES"
-    helper = root / "tools" / "ffmpeg_notices.py"
-    imported = subprocess.run([sys.executable, str(helper), "import", "--source-package", str(source), "--licenses-dir", str(licenses)], capture_output=True, text=True)
-    assert imported.returncode == 0, imported.stderr
-    manifest_path = licenses / "FFMPEG_DEPENDENCY_NOTICES" / "MANIFEST.json"
-    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    assert len(manifest["files"]) == 2
-    verified = subprocess.run([sys.executable, str(helper), "verify", "--licenses-dir", str(licenses)], capture_output=True, text=True)
-    assert verified.returncode == 0, verified.stderr
-
-    altered = licenses / "FFMPEG_DEPENDENCY_NOTICES" / "README.txt"
-    altered.write_text("XFmpeg docs\n", encoding="utf-8")
-    rejected = subprocess.run([sys.executable, str(helper), "verify", "--licenses-dir", str(licenses)], capture_output=True, text=True)
-    assert rejected.returncode == 2
-    assert "SHA-256 mismatch" in rejected.stderr
-
-    altered.write_text("FFmpeg docs\n", encoding="utf-8")
-    (licenses / "FFMPEG_DEPENDENCY_NOTICES" / "extra.txt").write_text("unlisted\n", encoding="utf-8")
-    rejected_extra = subprocess.run([sys.executable, str(helper), "verify", "--licenses-dir", str(licenses)], capture_output=True, text=True)
-    assert rejected_extra.returncode == 2
-    assert "unlisted" in rejected_extra.stderr
+    from kjv_audio_generator.runtime import runtime_root, bundled_ffmpeg
+    monkeypatch.setattr(sys, "_MEIPASS", str(tmp_path / "internal"), raising=False)
+    assert runtime_root() == (tmp_path / "internal").resolve()
+    assert bundled_ffmpeg() == (tmp_path / "internal" / "ffmpeg.exe").resolve()
 
 
-def test_ffmpeg_notice_import_rejects_symlinked_source_doc_or_license(tmp_path):
-    import subprocess
-    import sys
+def test_gui_exposes_safe_stop_and_retry_controls():
+    try:
+        root = tk.Tk()
+    except tk.TclError:
+        pytest.skip("No graphical display")
+    app = GeneratorApp(root)
+    assert app.stop_button.cget("text") == "Stop safely"
+    assert app.stop_button.instate(["disabled"])
+    assert app.retry_button.cget("text") == "Retry failed chapters"
+    assert app.retry_button.instate(["disabled"])
+    root.destroy()
 
-    root = Path(__file__).resolve().parents[1]
-    package = tmp_path / "ffmpeg-package"
-    external = tmp_path / "external-doc"
-    external.mkdir()
-    (external / "NOTICE.txt").write_text("external notice\n", encoding="utf-8")
-    package.mkdir()
-    (package / "LICENSE.txt").write_text("LGPL notice\n", encoding="utf-8")
-    (package / "doc").symlink_to(external, target_is_directory=True)
 
-    result = subprocess.run(
-        [
-            sys.executable,
-            str(root / "tools" / "ffmpeg_notices.py"),
-            "import",
-            "--source-package",
-            str(package),
-            "--licenses-dir",
-            str(tmp_path / "licenses"),
-        ],
-        capture_output=True,
-        text=True,
+def test_gui_exposes_voice_and_verse_review_controls(tmp_path):
+    try:
+        root = tk.Tk()
+    except tk.TclError:
+        pytest.skip("No graphical display")
+    app = GeneratorApp(root)
+    app.output_dir.set(str(tmp_path))
+
+    def descendants(widget):
+        for child in widget.winfo_children():
+            yield child
+            yield from descendants(child)
+
+    from tkinter import ttk
+    texts = [child.cget("text") for child in descendants(root) if isinstance(child, ttk.Button)]
+    assert "Manage Character Voices" in texts
+    assert "Review Verse Speakers" in texts
+
+    app._manage_voices()
+    root.update_idletasks()
+    dialogs = [child for child in root.winfo_children() if isinstance(child, tk.Toplevel)]
+    assert dialogs and dialogs[-1].title() == "Manage Character Voice Profiles"
+    dialog = dialogs[-1]
+    tree_widgets = [child for child in descendants(dialog) if isinstance(child, ttk.Treeview)]
+    assert len(tree_widgets) == 1
+    assert len(tree_widgets[0].get_children()) >= 5
+
+    entries = [child for child in descendants(dialog) if isinstance(child, ttk.Entry)]
+    text_widgets = [child for child in descendants(dialog) if isinstance(child, tk.Text)]
+    buttons = {child.cget("text"): child for child in descendants(dialog) if isinstance(child, ttk.Button)}
+    assert len(entries) == 4 and len(text_widgets) == 2
+    buttons["New Character"].invoke()
+    entries[0].delete(0, "end"); entries[0].insert(0, "john_the_baptist")
+    entries[1].delete(0, "end"); entries[1].insert(0, "John the Baptist")
+    entries[2].delete(0, "end"); entries[2].insert(0, "John, The Baptist")
+    text_widgets[0].delete("1.0", "end")
+    text_widgets[0].insert("1.0", "Clear, measured adult male voice with a prophetic but restrained tone.")
+    text_widgets[1].delete("1.0", "end")
+    text_widgets[1].insert("1.0", "Prepare ye the way of the Lord.")
+    buttons["Save Voice Profile"].invoke()
+
+    from kjv_audio_generator.voices import VoiceRegistry
+    saved = VoiceRegistry.load(tmp_path / "metadata" / "voice_registry.json")
+    assert "john_the_baptist" in saved.profiles
+    assert saved.get("john_the_baptist").display_name == "John the Baptist"
+    assert saved.get("john_the_baptist").status == "not_prepared"
+    dialog.destroy()
+    root.destroy()
+
+
+def test_gui_verse_review_saves_exact_multispeaker_segments(tmp_path):
+    try:
+        root = tk.Tk()
+    except tk.TclError:
+        pytest.skip("No graphical display")
+    from pathlib import Path
+    from tkinter import ttk
+    from kjv_audio_generator.attribution import AttributionMap
+    from kjv_audio_generator.voices import VoiceRegistry
+
+    app = GeneratorApp(root)
+    app.output_dir.set(str(tmp_path))
+    source = Path(__file__).resolve().parents[1] / "examples" / "genesis_1_kjv_test.txt"
+    app.text.insert("1.0", source.read_text(encoding="utf-8"))
+    app._review_verse_speakers()
+    root.update_idletasks()
+    dialogs = [child for child in root.winfo_children() if isinstance(child, tk.Toplevel)]
+    assert dialogs and dialogs[-1].title() == "Review Verse Speaker Assignments"
+    dialog = dialogs[-1]
+
+    def descendants(widget):
+        for child in widget.winfo_children():
+            yield child
+            yield from descendants(child)
+
+    combo = next(
+        child for child in descendants(dialog)
+        if isinstance(child, ttk.Combobox) and "Genesis 1:3" in child.cget("values")
     )
-    assert result.returncode == 2
-    assert "must not be symlinks" in result.stderr
+    combo.set("Genesis 1:3")
+    buttons = {child.cget("text"): child for child in descendants(dialog) if isinstance(child, ttk.Button)}
+    buttons["Load Verse"].invoke()
+    text_widgets = [child for child in descendants(dialog) if isinstance(child, tk.Text)]
+    assert len(text_widgets) == 2
+    text_widgets[1].delete("1.0", "end")
+    text_widgets[1].insert("1.0", "narrator\tAnd God said, \ngod\tLet there be light: and there was light.")
+    buttons["Save Speaker Segments"].invoke()
 
-
-def test_ffmpeg_notice_verifier_rejects_malformed_manifest_entries(tmp_path):
-    import json
-    import subprocess
-    import sys
-
-    root = Path(__file__).resolve().parents[1]
-    licenses = tmp_path / "LICENSES"
-    notice_dir = licenses / "FFMPEG_DEPENDENCY_NOTICES"
-    notice_dir.mkdir(parents=True)
-    (licenses / "FFMPEG_LICENSE.txt").write_text("LGPL notice\n", encoding="utf-8")
-    (notice_dir / "MANIFEST.json").write_text(
-        json.dumps({"schema_version": 1, "files": ["not-an-object"]}),
-        encoding="utf-8",
-    )
-
-    result = subprocess.run(
-        [
-            sys.executable,
-            str(root / "tools" / "ffmpeg_notices.py"),
-            "verify",
-            "--licenses-dir",
-            str(licenses),
-        ],
-        capture_output=True,
-        text=True,
-    )
-    assert result.returncode == 2
-    assert "entries must be JSON objects" in result.stderr
-
-
-def test_ffmpeg_notice_verifier_rejects_windows_unsafe_manifest_paths(tmp_path):
-    import json
-    import subprocess
-    import sys
-
-    root = Path(__file__).resolve().parents[1]
-    helper = root / "tools" / "ffmpeg_notices.py"
-    unsafe_paths = [
-        "../escape.txt",
-        "/absolute.txt",
-        "C:/Windows/win.ini",
-        "C:relative.txt",
-        "//server/share/notice.txt",
-        "NOTICE.txt:alternate-stream",
-        "folder\\notice.txt",
-        "CON.txt",
-        "NUL",
-        "COM1.txt",
-        "LPT9.notice",
-        "folder./notice.txt",
-        "trailing-space /notice.txt",
-        "folder//notice.txt",
-        "./NOTICE.txt",
-        "folder/../NOTICE.txt",
-        "bad\x00name.txt",
+    registry = VoiceRegistry.load(tmp_path / "metadata" / "voice_registry.json")
+    saved = AttributionMap.load(tmp_path / "metadata" / "speaker_assignments.json", registry)
+    assert saved.segment_overrides["Genesis 1:3"] == [
+        {"speaker_id": "narrator", "text": "And God said, "},
+        {"speaker_id": "god", "text": "Let there be light: and there was light."},
     ]
-    for index, unsafe_path in enumerate(unsafe_paths):
-        licenses = tmp_path / f"licenses-{index}"
-        notice_dir = licenses / "FFMPEG_DEPENDENCY_NOTICES"
-        notice_dir.mkdir(parents=True)
-        (licenses / "FFMPEG_LICENSE.txt").write_text("LGPL notice\\n", encoding="utf-8")
-        (notice_dir / "MANIFEST.json").write_text(
-            json.dumps({"schema_version": 1, "files": [{"path": unsafe_path, "bytes": 0, "sha256": "0" * 64}]}),
-            encoding="utf-8",
-        )
-        result = subprocess.run(
-            [sys.executable, str(helper), "verify", "--licenses-dir", str(licenses)],
-            capture_output=True,
-            text=True,
-        )
-        assert result.returncode == 2, (unsafe_path, result.stdout, result.stderr)
-        assert "Unsafe" in result.stderr or "reserved" in result.stderr, (unsafe_path, result.stderr)
+    dialog.destroy()
+    root.destroy()
 
 
-def test_ffmpeg_notice_verifier_rejects_windows_case_collisions(tmp_path):
+def test_gui_review_queue_filters_ambiguous_verses_and_clears_them_after_review(tmp_path):
+    try:
+        root = tk.Tk()
+    except tk.TclError:
+        pytest.skip("No graphical display")
+    from pathlib import Path
+    from tkinter import ttk
+    from kjv_audio_generator.attribution import AttributionMap
+    from kjv_audio_generator.voices import VoiceRegistry
+
+    registry = VoiceRegistry.defaults()
+    metadata = tmp_path / "metadata"
+    metadata.mkdir(parents=True)
+    registry.save(metadata / "voice_registry.json")
+    attribution = AttributionMap(registry, seed_review={
+        "Genesis 1:1": ["god", "jesus"],
+        "Genesis 1:2": ["moses", "unknown_speaker"],
+    })
+    attribution.save(metadata / "speaker_assignments.json")
+
+    app = GeneratorApp(root)
+    app.output_dir.set(str(tmp_path))
+    app.text.insert("1.0", "Genesis 1:1 One verse.\nGenesis 1:2 Another verse.")
+    app._review_verse_speakers()
+    root.update_idletasks()
+    dialogs = [child for child in root.winfo_children() if isinstance(child, tk.Toplevel)]
+    dialog = dialogs[-1]
+
+    def descendants(widget):
+        for child in widget.winfo_children():
+            yield child
+            yield from descendants(child)
+
+    combos = [child for child in descendants(dialog) if isinstance(child, ttk.Combobox)]
+    assert len(combos) == 2
+    filter_combo, ref_combo = combos
+    filter_combo.set("Needs review")
+    filter_combo.event_generate("<<ComboboxSelected>>")
+    root.update_idletasks()
+    assert tuple(ref_combo.cget("values")) == ("Genesis 1:1", "Genesis 1:2")
+    ref_combo.set("Genesis 1:1")
+    ref_combo.event_generate("<<ComboboxSelected>>")
+    text_widgets = [child for child in descendants(dialog) if isinstance(child, tk.Text)]
+    text_widgets[1].delete("1.0", "end")
+    text_widgets[1].insert("1.0", "god\tOne verse.")
+    buttons = {child.cget("text"): child for child in descendants(dialog) if isinstance(child, ttk.Button)}
+    buttons["Save Speaker Segments"].invoke()
+    root.update_idletasks()
+    assert tuple(ref_combo.cget("values")) == ("Genesis 1:2",)
+
+    saved = AttributionMap.load(metadata / "speaker_assignments.json", registry)
+    assert saved.segment_overrides["Genesis 1:1"] == [{"speaker_id": "god", "text": "One verse."}]
+    assert "Genesis 1:1" in saved.seed_review  # audit provenance is retained after manual resolution
+    dialog.destroy()
+    root.destroy()
+
+
+
+def test_cli_no_arguments_still_opens_gui(monkeypatch):
+    called = []
+    monkeypatch.setattr(sys, "argv", ["KJV Bible Audio Generator.exe"])
+    monkeypatch.setattr("kjv_audio_generator.__main__.gui_main", lambda: called.append(True))
+    assert cli_main() == 0
+    assert called == [True]
+
+
+def test_cli_gui_flag_opens_gui(monkeypatch):
+    called = []
+    monkeypatch.setattr(sys, "argv", ["kjv-audio-generator", "--gui"])
+    monkeypatch.setattr("kjv_audio_generator.__main__.gui_main", lambda: called.append(True))
+    assert cli_main() == 0
+    assert called == [True]
+
+
+def test_cli_self_test_success_checks_models_runtime_and_explicit_ffmpeg(tmp_path, monkeypatch, capsys):
+    import subprocess
+    import kjv_audio_generator.__main__ as cli
+
+    model_root = tmp_path / "models"
+    model_root.mkdir()
+    (model_root / "KJV_QWEN_ASSET_MANIFEST.json").write_text("{}", encoding="utf-8")
+    ffmpeg = tmp_path / "ffmpeg.exe"
+
+    class FakeBackend:
+        def __init__(self, settings, cache):
+            self.settings = settings
+            self.cache = cache
+
+        def _require_directory(self, folder, label):
+            assert folder.is_absolute()
+
+        def generation_fingerprint(self):
+            return "verified-model-fingerprint"
+
+        def _imports(self):
+            return object()
+
+    monkeypatch.setattr(sys, "argv", [
+        "kjv-audio-generator", "--self-test", "--models", str(model_root),
+        "--ffmpeg", str(ffmpeg), "--output", str(tmp_path / "out"),
+    ])
+    monkeypatch.setattr(cli, "QwenVoiceBackend", FakeBackend)
+    monkeypatch.setattr("kjv_audio_generator.audio.find_ffmpeg", lambda path=None: str(ffmpeg))
+    monkeypatch.setattr(cli.subprocess, "run", lambda *a, **k: subprocess.CompletedProcess(a[0], 0, "ffmpeg version test\n", ""))
+
+    assert cli_main() == 0
+    payload = __import__("json").loads(capsys.readouterr().out)
+    assert payload["ok"] is True
+    assert all(payload["checks"].values())
+    assert payload["ffmpeg"]["version"] == "ffmpeg version test"
+
+
+def test_cli_audio_smoke_success_uses_real_workflow_contract(tmp_path, monkeypatch, capsys):
+    import kjv_audio_generator.__main__ as cli
+
+    class FakeBackend:
+        def __init__(self, settings, cache):
+            self.prepared = []
+
+        def prepare_profiles(self, profiles):
+            self.prepared.extend(profiles)
+
+        def synthesize(self, text, profile):
+            assert text.startswith("This is a test")
+            assert profile.speaker_id == "narrator"
+            return [0.0] * 128, 24000
+
+    class FakeAssembler:
+        def __init__(self, output, ffmpeg, bitrate):
+            self.output = output
+
+        def write_chapter(self, book, chapter, segments, audio):
+            assert (book, chapter) == ("Genesis", 1)
+            assert len(segments) == len(audio) == 1
+            return self.output / "Genesis_001.mp3", self.output / "Genesis_001.cues.json"
+
+    monkeypatch.setattr(sys, "argv", [
+        "kjv-audio-generator", "--audio-smoke", "--models", str(tmp_path / "models"),
+        "--output", str(tmp_path / "out"),
+    ])
+    monkeypatch.setattr(cli, "QwenVoiceBackend", FakeBackend)
+    monkeypatch.setattr(cli, "ChapterAudioAssembler", FakeAssembler)
+
+    assert cli_main() == 0
+    payload = __import__("json").loads(capsys.readouterr().out)
+    assert payload["ok"] is True
+    assert payload["samples"] == 128
+    assert payload["sample_rate"] == 24000
+
+
+def test_cli_speaker_projection_import_persists_registry_assignments_and_review(tmp_path, monkeypatch, capsys):
+    import json
+    from kjv_audio_generator.attribution import AttributionMap
+    from kjv_audio_generator.voices import VoiceRegistry
+
+    projections = tmp_path / "projections.tsv"
+    projections.write_text(
+        "START VS\tEND VS\tSPEAKER (FCBH)\tALT SPEAKER (FCBH)\n"
+        "GEN 1:1\tGEN 1:1\tMoses\t\n",
+        encoding="utf-8",
+    )
+    output = tmp_path / "output"
+    monkeypatch.setattr(sys, "argv", [
+        "kjv-audio-generator", "--speaker-projections", str(projections),
+        "--output", str(output),
+    ])
+
+    assert cli_main() == 0
+    report = json.loads(capsys.readouterr().out)
+    metadata = output / "metadata"
+    registry = VoiceRegistry.load(metadata / "voice_registry.json")
+    assignments = AttributionMap.load(metadata / "speaker_assignments.json", registry)
+    review = json.loads((metadata / "speaker_seed_review.json").read_text(encoding="utf-8"))
+    assert report["source_rows"] == 1
+    assert report["uniquely_mapped_verses"] == 1
+    assert registry.get("moses").display_name == "Moses"
+    assert assignments.ranges[0].speaker_id == "moses"
+    assert review["summary"]["requires_review"] is True
+
+
+def test_cli_speaker_projection_import_preserves_manual_work_and_registry(tmp_path, monkeypatch, capsys):
+    import json
+    from kjv_audio_generator.attribution import AttributionMap, SpeakerRange
+    from kjv_audio_generator.models import Verse, VerseRef
+    from kjv_audio_generator.voices import VoiceProfile, VoiceRegistry
+
+    output = tmp_path / "output"
+    metadata = output / "metadata"
+    metadata.mkdir(parents=True)
+    registry = VoiceRegistry.defaults()
+    registry.add(VoiceProfile(
+        "custom_elizabeth", "Elizabeth Custom", ["Elizabeth"],
+        "A user-authored, prepared voice profile.", status="prepared",
+    ))
+    registry.save(metadata / "voice_registry.json")
+    existing = AttributionMap(
+        registry,
+        ranges=[SpeakerRange("Genesis", 1, 3, 3, "god")],
+        segment_overrides={"Genesis 1:1": [{"speaker_id": "narrator", "text": "Manual exact verse."}]},
+        seed_review={"Genesis 1:8": ["god"]},
+        provenance={"dataset": "user-reviewed-custom", "origin_note": "preserve this"},
+    )
+    existing.save(metadata / "speaker_assignments.json")
+
+    projections = tmp_path / "projections.tsv"
+    projections.write_text(
+        "START VS\tEND VS\tSPEAKER (FCBH)\tALT SPEAKER (FCBH)\n"
+        "GEN 1:1\tGEN 1:1\tMoses\t\n"
+        "GEN 1:2\tGEN 1:2\tMoses\tGod\n"
+        "GEN 1:3\tGEN 1:3\tJesus\t\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(sys, "argv", [
+        "kjv-audio-generator", "--speaker-projections", str(projections),
+        "--output", str(output),
+    ])
+
+    assert cli_main() == 0
+    first_report = json.loads(capsys.readouterr().out)
+    saved_registry = VoiceRegistry.load(metadata / "voice_registry.json")
+    saved = AttributionMap.load(metadata / "speaker_assignments.json", saved_registry)
+    review = json.loads((metadata / "speaker_seed_review.json").read_text(encoding="utf-8"))
+
+    assert saved_registry.get("custom_elizabeth").status == "prepared"
+    assert saved_registry.get("moses").display_name == "Moses"
+    assert saved.segment_overrides["Genesis 1:1"] == [
+        {"speaker_id": "narrator", "text": "Manual exact verse."}
+    ]
+    assert saved.segments_for(Verse(VerseRef("Genesis", 1, 1), "Manual exact verse."))[0].speaker_id == "narrator"
+    assert any(r.speaker_id == "god" and r.start_verse == 3 for r in saved.ranges)
+    assert saved.seed_review["Genesis 1:8"] == ["god"]
+    assert set(saved.seed_review["Genesis 1:2"]) == {"god", "moses"}
+    assert set(saved.seed_review["Genesis 1:3"]) == {"god", "jesus"}
+    assert saved.segments_for(Verse(VerseRef("Genesis", 1, 3), "Conflicting source suggestions."))[0].speaker_id == "unknown_speaker"
+    assert review["ambiguous_verse_candidates"]["Genesis 1:8"] == ["god"]
+    assert review["merge"]["preserved_manual_overrides"] == 1
+    assert first_report["merge"]["preserved_existing_ranges"] == 1
+    assert saved.provenance["origin_note"] == "preserve this"
+    assert len(saved.provenance["import_history"]) == 1
+
+    # Re-importing the same source replaces its prior suggestions, not the
+    # previously preserved user range, profile or verse override.
+    assert cli_main() == 0
+    second_report = json.loads(capsys.readouterr().out)
+    registry_again = VoiceRegistry.load(metadata / "voice_registry.json")
+    saved_again = AttributionMap.load(metadata / "speaker_assignments.json", registry_again)
+    assert saved_again.segment_overrides == saved.segment_overrides
+    assert registry_again.get("custom_elizabeth").status == "prepared"
+    assert any(r.speaker_id == "god" and r.start_verse == 3 for r in saved_again.ranges)
+    assert len(saved_again.provenance["import_history"]) == 1
+    assert second_report["merge"]["merged_ranges"] == first_report["merge"]["merged_ranges"]
+    assert second_report["merge"]["preserved_existing_ranges"] == 1
+
+
+def test_json_metadata_write_is_atomic_when_replace_fails(tmp_path, monkeypatch):
+    import kjv_audio_generator.json_io as json_io
+    from kjv_audio_generator.__main__ import _write_json_atomic
+
+    target = tmp_path / "speaker_seed_review.json"
+    original = b'{"previous": true}\n'
+    target.write_bytes(original)
+
+    def fail_replace(source, destination):
+        raise OSError("simulated atomic replace failure")
+
+    monkeypatch.setattr(json_io.os, "replace", fail_replace)
+    with pytest.raises(OSError, match="simulated atomic replace failure"):
+        _write_json_atomic(target, {"new": True})
+
+    assert target.read_bytes() == original
+    assert not list(tmp_path.glob(".*.tmp"))
+
+
+def test_cli_speaker_projection_import_reports_missing_file(tmp_path, monkeypatch, capsys):
+    missing = tmp_path / "not-present.tsv"
+    monkeypatch.setattr(sys, "argv", [
+        "kjv-audio-generator", "--speaker-projections", str(missing),
+        "--output", str(tmp_path / "output"),
+    ])
+    assert cli_main() == 1
+    assert "Speaker data import failed" in capsys.readouterr().err
+
+
+def test_cli_input_wires_parse_backend_queue_and_report_without_model_inference(tmp_path, monkeypatch, capsys):
+    import kjv_audio_generator.__main__ as cli
+    from kjv_audio_generator.attribution import AttributionMap
+
+    fixture = tmp_path / "complete_bible.json"
+    fixture.write_text("{}", encoding="utf-8")
+    output = tmp_path / "output"
+    calls = {}
+
+    class FakeDocument:
+        chapters = [object()]
+
+        def validate_complete(self):
+            calls["validated"] = True
+            return {"complete": True, "books": 66, "chapters": 1189, "verses": 31102}
+
+    class FakeBackend:
+        def __init__(self, settings, cache):
+            calls["backend"] = True
+
+    class FakeAssembler:
+        def __init__(self, out, ffmpeg, bitrate):
+            calls["assembler"] = (out, bitrate)
+
+    class FakeWorker:
+        def __init__(self, document, out, registry, attribution, backend, assembler):
+            calls["chapters"] = len(document.chapters)
+            self.store = self
+
+        def start(self, background=False):
+            calls["background"] = background
+
+        def progress(self):
+            return {"complete": 1, "pending": 0, "failed": 0}
+
+    monkeypatch.setattr(sys, "argv", [
+        "kjv-audio-generator", "--input", str(fixture), "--output", str(output),
+    ])
+    monkeypatch.setattr(cli, "parse_path", lambda path: FakeDocument())
+    monkeypatch.setattr(cli, "QwenVoiceBackend", FakeBackend)
+    monkeypatch.setattr(cli, "ChapterAudioAssembler", FakeAssembler)
+    monkeypatch.setattr(cli, "ChapterWorker", FakeWorker)
+    monkeypatch.setattr(cli, "load_or_seed_attribution", lambda out, data, registry: AttributionMap(registry))
+
+    assert cli_main() == 0
+    payload = __import__("json").loads(capsys.readouterr().out)
+    assert calls["validated"] is True
+    assert calls["backend"] is True
+    assert calls["chapters"] == 1
+    assert calls["background"] is False
+    assert payload["counts"]["complete"] == 1
+    assert output.is_dir()
+
+
+def test_gui_speaker_import_preserves_reviewed_work_and_merges_conflicts(tmp_path, monkeypatch):
+    import json
+    from kjv_audio_generator.app import GeneratorApp
+    from kjv_audio_generator.attribution import AttributionMap, SpeakerRange
+    from kjv_audio_generator.voices import VoiceProfile, VoiceRegistry
+    from kjv_audio_generator.models import Verse, VerseRef
+
+    try:
+        root = tk.Tk()
+    except tk.TclError:
+        pytest.skip("No graphical display")
+
+    output = tmp_path / "output"
+    metadata = output / "metadata"
+    metadata.mkdir(parents=True)
+    registry = VoiceRegistry.defaults()
+    registry.add(VoiceProfile(
+        "custom_elizabeth", "Custom Elizabeth", [],
+        "Clear, measured adult female voice for this project.", status="prepared",
+    ))
+    registry.save(metadata / "voice_registry.json")
+    existing = AttributionMap(
+        registry,
+        ranges=[SpeakerRange("Genesis", 1, 3, 3, "god", priority=7)],
+        segment_overrides={
+            "Genesis 1:1": [
+                {"speaker_id": "narrator", "text": "Manual exact verse."}
+            ]
+        },
+        seed_review={"Genesis 1:8": ["god"]},
+        provenance={"dataset": "user-reviewed-custom", "origin_note": "keep my edits"},
+    )
+    existing.save(metadata / "speaker_assignments.json")
+
+    projections = tmp_path / "projections.tsv"
+    projections.write_text(
+        "START VS\tEND VS\tSPEAKER (FCBH)\tALT SPEAKER (FCBH)\n"
+        "GEN 1:1\tGEN 1:1\tMoses\t\n"
+        "GEN 1:3\tGEN 1:3\tJesus\t\n",
+        encoding="utf-8",
+    )
+    selected = iter([str(projections), ""])
+    monkeypatch.setattr(
+        "kjv_audio_generator.app.filedialog.askopenfilename",
+        lambda **_kwargs: next(selected),
+    )
+    monkeypatch.setattr("kjv_audio_generator.app.messagebox.showinfo", lambda *a, **k: None)
+    monkeypatch.setattr("kjv_audio_generator.app.messagebox.showerror", lambda *a, **k: pytest.fail(str(a)))
+
+    app = GeneratorApp(root)
+    app.output_dir.set(str(output))
+    app._import_speaker_data()
+
+    saved_registry = VoiceRegistry.load(metadata / "voice_registry.json")
+    saved = AttributionMap.load(metadata / "speaker_assignments.json", saved_registry)
+    review = json.loads((metadata / "speaker_seed_review.json").read_text(encoding="utf-8"))
+
+    assert saved_registry.get("custom_elizabeth").status == "prepared"
+    assert saved.segment_overrides["Genesis 1:1"] == [
+        {"speaker_id": "narrator", "text": "Manual exact verse."}
+    ]
+    assert saved.segments_for(Verse(VerseRef("Genesis", 1, 1), "Manual exact verse."))[0].speaker_id == "narrator"
+    assert saved.provenance["origin_note"] == "keep my edits"
+    assert saved.seed_review["Genesis 1:8"] == ["god"]
+    assert any(r.speaker_id == "god" and r.start_verse == 3 for r in saved.ranges)
+    assert any(r.speaker_id == "jesus" and r.start_verse == 3 for r in saved.ranges)
+    assert set(saved.seed_review["Genesis 1:3"]) == {"god", "jesus"}
+    assert saved.segments_for(Verse(VerseRef("Genesis", 1, 3), "An uncertain quotation."))[0].speaker_id == "unknown_speaker"
+    assert review["merge"]["preserved_manual_overrides"] == 1
+    assert review["ambiguous_verse_candidates"]["Genesis 1:3"] == ["god", "jesus"]
+    assert app.registry is not None and app.attribution is not None
+
+    # The same GUI import is safe to repeat: the previous source's projections
+    # are replaced, not duplicated, while human edits remain intact.
+    selected = iter([str(projections), ""])
+    monkeypatch.setattr(
+        "kjv_audio_generator.app.filedialog.askopenfilename",
+        lambda **_kwargs: next(selected),
+    )
+    app._import_speaker_data()
+    again_registry = VoiceRegistry.load(metadata / "voice_registry.json")
+    again = AttributionMap.load(metadata / "speaker_assignments.json", again_registry)
+    assert again.segment_overrides == saved.segment_overrides
+    assert again.provenance["origin_note"] == "keep my edits"
+    assert len(again.provenance["import_history"]) == 1
+    assert again.provenance["suggestion_sources"] == saved.provenance["suggestion_sources"]
+    root.destroy()
+
+
+
+def test_packaged_launcher_dispatches_through_the_cli_main_entrypoint():
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[1]
+    entrypoint = (root / "tools" / "entrypoint.py").read_text(encoding="utf-8")
+    assert "from kjv_audio_generator.__main__ import main" in entrypoint
+    assert "raise SystemExit(main())" in entrypoint
+
+
+def test_windowed_cli_self_test_writes_report_when_stdout_and_stderr_are_missing(tmp_path, monkeypatch):
     import json
     import subprocess
-    import sys
+    import kjv_audio_generator.__main__ as cli
+    import kjv_audio_generator.audio as audio
 
-    root = Path(__file__).resolve().parents[1]
-    licenses = tmp_path / "LICENSES"
-    notice_dir = licenses / "FFMPEG_DEPENDENCY_NOTICES"
-    notice_dir.mkdir(parents=True)
-    (licenses / "FFMPEG_LICENSE.txt").write_text("LGPL notice\\n", encoding="utf-8")
-    (notice_dir / "Readme.txt").write_text("one\\n", encoding="utf-8")
-    (notice_dir / "README.txt").write_text("two\\n", encoding="utf-8")
-    (notice_dir / "MANIFEST.json").write_text(
-        json.dumps(
-            {
-                "schema_version": 1,
-                "files": [
-                    {"path": "Readme.txt", "bytes": (notice_dir / "Readme.txt").stat().st_size, "sha256": "0" * 64},
-                    {"path": "README.txt", "bytes": (notice_dir / "README.txt").stat().st_size, "sha256": "0" * 64},
-                ],
-            }
-        ),
-        encoding="utf-8",
+    model_root = tmp_path / "models"
+    model_root.mkdir()
+    (model_root / "KJV_QWEN_ASSET_MANIFEST.json").write_text("{}", encoding="utf-8")
+    output = tmp_path / "portable-output"
+    ffmpeg = tmp_path / "ffmpeg.exe"
+    ffmpeg.write_bytes(b"test-ffmpeg")
+
+    class FakeBackend:
+        def __init__(self, settings, cache):
+            self.settings = settings
+            Path(cache).mkdir(parents=True, exist_ok=True)
+
+        def _require_directory(self, folder, label):
+            return None
+
+        def generation_fingerprint(self):
+            return "verified-model-fingerprint"
+
+        def _imports(self):
+            return object()
+
+    monkeypatch.setattr(sys, "argv", [
+        "KJV Bible Audio Generator.exe",
+        "--self-test",
+        "--models", str(model_root),
+        "--output", str(output),
+    ])
+    monkeypatch.setattr(cli, "QwenVoiceBackend", FakeBackend)
+    monkeypatch.setattr(cli, "bundled_ffmpeg", lambda: ffmpeg)
+    monkeypatch.setattr(audio, "find_ffmpeg", lambda path=None: str(ffmpeg))
+    monkeypatch.setattr(
+        cli.subprocess,
+        "run",
+        lambda *args, **kwargs: subprocess.CompletedProcess(args[0], 0, "ffmpeg version test\n", ""),
     )
-
-    result = subprocess.run(
-        [sys.executable, str(root / "tools" / "ffmpeg_notices.py"), "verify", "--licenses-dir", str(licenses)],
-        capture_output=True,
-        text=True,
-    )
-    assert result.returncode == 2
-    assert "Windows-colliding" in result.stderr
-
-
-def test_ffmpeg_notice_verifier_rejects_symlinked_manifest_license_and_notice_files(tmp_path):
-    import json
-    import subprocess
-    import sys
-
-    root = Path(__file__).resolve().parents[1]
-    helper = root / "tools" / "ffmpeg_notices.py"
-
-    for symlink_kind in ("manifest", "license", "notice"):
-        case = tmp_path / symlink_kind
-        licenses = case / "LICENSES"
-        notice_dir = licenses / "FFMPEG_DEPENDENCY_NOTICES"
-        notice_dir.mkdir(parents=True)
-        outside = case / "outside.txt"
-        outside.write_text("external notice\\n", encoding="utf-8")
-        (notice_dir / "NOTICE.txt").write_text("inside notice\\n", encoding="utf-8")
-        manifest_path = notice_dir / "MANIFEST.json"
-        manifest_path.write_text(
-            json.dumps(
-                {
-                    "schema_version": 1,
-                    "files": [
-                        {
-                            "path": "NOTICE.txt",
-                            "bytes": (notice_dir / "NOTICE.txt").stat().st_size,
-                            "sha256": __import__("hashlib").sha256((notice_dir / "NOTICE.txt").read_bytes()).hexdigest(),
-                        }
-                    ],
-                }
-            ),
-            encoding="utf-8",
-        )
-        (licenses / "FFMPEG_LICENSE.txt").write_text("LGPL notice\\n", encoding="utf-8")
-
-        if symlink_kind == "manifest":
-            manifest_path.unlink()
-            manifest_path.symlink_to(outside)
-        elif symlink_kind == "license":
-            (licenses / "FFMPEG_LICENSE.txt").unlink()
-            (licenses / "FFMPEG_LICENSE.txt").symlink_to(outside)
-        else:
-            (notice_dir / "NOTICE.txt").unlink()
-            (notice_dir / "NOTICE.txt").symlink_to(outside)
-
-        result = subprocess.run(
-            [sys.executable, str(helper), "verify", "--licenses-dir", str(licenses)],
-            capture_output=True,
-            text=True,
-        )
-        assert result.returncode == 2, (symlink_kind, result.stdout, result.stderr)
-        assert "symlink" in result.stderr.lower(), (symlink_kind, result.stderr)
-
-
-def test_ffmpeg_notice_import_rejects_windows_unsafe_and_reserved_source_paths(tmp_path):
-    import subprocess
-    import sys
-
-    root = Path(__file__).resolve().parents[1]
-    helper = root / "tools" / "ffmpeg_notices.py"
-    source_names = ["NOTICE.txt:stream", "manifest.json"]
-    if sys.platform != "win32":
-        # Win32 normalizes trailing dot/space names and reserves DOS device
-        # names before Python can create these exact path strings. Their raw
-        # spelling is covered by the platform-independent validator test below.
-        source_names.extend(("CON.txt", "trailing. "))
-    for index, source_name in enumerate(source_names):
-        package = tmp_path / f"package-{index}"
-        (package / "doc").mkdir(parents=True)
-        (package / "doc" / source_name).write_text("notice\\n", encoding="utf-8")
-        (package / "LICENSE.txt").write_text("LGPL notice\\n", encoding="utf-8")
-        licenses = tmp_path / f"licenses-{index}"
-        result = subprocess.run(
-            [sys.executable, str(helper), "import", "--source-package", str(package), "--licenses-dir", str(licenses)],
-            capture_output=True,
-            text=True,
-        )
-        assert result.returncode == 2, (source_name, result.stdout, result.stderr)
-        assert any(token in result.stderr.lower() for token in ("unsafe", "reserved", "manifest.json", "alternate data streams")), (source_name, result.stderr)
-        assert not (licenses / "FFMPEG_DEPENDENCY_NOTICES").exists()
-
-
-
-
-def test_ffmpeg_notice_path_validator_rejects_windows_unsafe_raw_names():
-    import pytest
-
-    tool = _load_ffmpeg_notice_tool()
-    for raw_name in ("NOTICE.txt:stream", "CON.txt", "NUL.bin", "LPT1.log", "trailing. "):
-        with pytest.raises(ValueError):
-            tool._validated_relative_path(raw_name)
-
-
-def test_ffmpeg_notice_import_rejects_alternate_stream_on_source_license(tmp_path):
-    if sys.platform != "win32":
-        import pytest
-        pytest.skip("NTFS alternate data streams are Windows-only")
-
-    import subprocess
-    import sys as python_sys
-    root = Path(__file__).resolve().parents[1]
-    helper = root / "tools" / "ffmpeg_notices.py"
-    package = tmp_path / "package-with-license-stream"
-    (package / "doc").mkdir(parents=True)
-    (package / "doc" / "README.txt").write_text("notice\n", encoding="utf-8")
-    license_file = package / "LICENSE.txt"
-    license_file.write_text("LGPL license\n", encoding="utf-8")
-    Path(str(license_file) + ":hidden").write_text("not part of the license\n", encoding="utf-8")
-    result = subprocess.run(
-        [python_sys.executable, str(helper), "import", "--source-package", str(package), "--licenses-dir", str(tmp_path / "licenses")],
-        capture_output=True,
-        text=True,
-    )
-    assert result.returncode == 2, (result.stdout, result.stderr)
-    assert "alternate data streams" in result.stderr.lower()
-
-
-def _load_ffmpeg_notice_tool():
-    import importlib.util
-
-    root = Path(__file__).resolve().parents[1]
-    tool_path = root / "tools" / "ffmpeg_notices.py"
-    spec = importlib.util.spec_from_file_location("ffmpeg_notices_under_test", tool_path)
-    assert spec and spec.loader
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
-
-
-def _make_ffmpeg_package(root: Path, *, notice_text: str, license_text: str):
-    (root / "doc" / "licenses").mkdir(parents=True)
-    (root / "doc" / "README.txt").write_text(notice_text, encoding="utf-8")
-    (root / "doc" / "licenses" / "libx.txt").write_text("dependency notice\n", encoding="utf-8")
-    (root / "LICENSE.txt").write_text(license_text, encoding="utf-8")
-
-
-def test_ffmpeg_notice_import_keeps_previous_bundle_if_staging_copy_fails(tmp_path, monkeypatch):
-    import pytest
-
-    tool = _load_ffmpeg_notice_tool()
-    licenses = tmp_path / "LICENSES"
-    old_package = tmp_path / "old-package"
-    new_package = tmp_path / "new-package"
-    _make_ffmpeg_package(old_package, notice_text="old notice\n", license_text="old LGPL\n")
-    _make_ffmpeg_package(new_package, notice_text="new notice\n", license_text="new LGPL\n")
-
-    tool.import_notices(old_package, licenses)
-    old_manifest = (licenses / "FFMPEG_DEPENDENCY_NOTICES" / "MANIFEST.json").read_bytes()
-    old_notice = (licenses / "FFMPEG_DEPENDENCY_NOTICES" / "README.txt").read_bytes()
-    old_license = (licenses / "FFMPEG_LICENSE.txt").read_bytes()
-
-    def fail_copytree(*_args, **_kwargs):
-        raise OSError("injected staging copy failure")
-
-    monkeypatch.setattr(tool.shutil, "copytree", fail_copytree)
-    with pytest.raises(OSError, match="injected staging copy failure"):
-        tool.import_notices(new_package, licenses)
-
-    assert (licenses / "FFMPEG_DEPENDENCY_NOTICES" / "MANIFEST.json").read_bytes() == old_manifest
-    assert (licenses / "FFMPEG_DEPENDENCY_NOTICES" / "README.txt").read_bytes() == old_notice
-    assert (licenses / "FFMPEG_LICENSE.txt").read_bytes() == old_license
-    assert not list(licenses.glob(".ffmpeg-notices-stage-*"))
-    assert not list(licenses.glob(".ffmpeg-notices-backup-*"))
-
-
-def test_ffmpeg_notice_import_rolls_back_if_pair_commit_fails(tmp_path, monkeypatch):
-    import pytest
-
-    tool = _load_ffmpeg_notice_tool()
-    licenses = tmp_path / "LICENSES"
-    old_package = tmp_path / "old-package"
-    new_package = tmp_path / "new-package"
-    _make_ffmpeg_package(old_package, notice_text="old notice\n", license_text="old LGPL\n")
-    _make_ffmpeg_package(new_package, notice_text="new notice\n", license_text="new LGPL\n")
-
-    tool.import_notices(old_package, licenses)
-    old_manifest = (licenses / "FFMPEG_DEPENDENCY_NOTICES" / "MANIFEST.json").read_bytes()
-    old_notice = (licenses / "FFMPEG_DEPENDENCY_NOTICES" / "README.txt").read_bytes()
-    old_license = (licenses / "FFMPEG_LICENSE.txt").read_bytes()
-    real_replace = tool.os.replace
-    license_destination = licenses / "FFMPEG_LICENSE.txt"
-
-    def fail_new_license_install(source, destination):
-        source_path = Path(source)
-        destination_path = Path(destination)
-        if destination_path == license_destination and ".ffmpeg-notices-stage-" in str(source_path):
-            raise OSError("injected staged license commit failure")
-        return real_replace(source, destination)
-
-    monkeypatch.setattr(tool.os, "replace", fail_new_license_install)
-    with pytest.raises(OSError, match="injected staged license commit failure"):
-        tool.import_notices(new_package, licenses)
-
-    assert (licenses / "FFMPEG_DEPENDENCY_NOTICES" / "MANIFEST.json").read_bytes() == old_manifest
-    assert (licenses / "FFMPEG_DEPENDENCY_NOTICES" / "README.txt").read_bytes() == old_notice
-    assert (licenses / "FFMPEG_LICENSE.txt").read_bytes() == old_license
-    assert tool.verify_notices(licenses)["ok"] is True
-    assert not list(licenses.glob(".ffmpeg-notices-stage-*"))
-    assert not list(licenses.glob(".ffmpeg-notices-backup-*"))
-
-
-def test_ffmpeg_notice_import_successfully_replaces_old_bundle_as_a_set(tmp_path):
-    tool = _load_ffmpeg_notice_tool()
-    licenses = tmp_path / "LICENSES"
-    old_package = tmp_path / "old-package"
-    new_package = tmp_path / "new-package"
-    _make_ffmpeg_package(old_package, notice_text="old notice\n", license_text="old LGPL\n")
-    _make_ffmpeg_package(new_package, notice_text="new notice\n", license_text="new LGPL\n")
-
-    tool.import_notices(old_package, licenses)
-    (licenses / "FFMPEG_DEPENDENCY_NOTICES" / "stale-extra.txt").write_text("old extra\n", encoding="utf-8")
-    result = tool.import_notices(new_package, licenses)
-
-    assert (licenses / "FFMPEG_DEPENDENCY_NOTICES" / "README.txt").read_text(encoding="utf-8") == "new notice\n"
-    assert not (licenses / "FFMPEG_DEPENDENCY_NOTICES" / "stale-extra.txt").exists()
-    assert (licenses / "FFMPEG_LICENSE.txt").read_text(encoding="utf-8") == "new LGPL\n"
-    assert len(result["files"]) == 2
-    assert tool.verify_notices(licenses)["ok"] is True
-    assert not list(licenses.glob(".ffmpeg-notices-stage-*"))
-    assert not list(licenses.glob(".ffmpeg-notices-backup-*"))
-
-
-def test_developer_test_dependencies_include_the_pytorch_adapter_runtime():
-    root = Path(__file__).resolve().parents[1]
-    pyproject = (root / "pyproject.toml").read_text(encoding="utf-8")
-    dev_section = pyproject.split("dev = [", 1)[1].split("]", 1)[0]
-    assert "pytest>=8" in dev_section
-    assert "torch==2.10.0" in dev_section
-
-
-
-def test_cross_platform_ci_installs_ffmpeg_before_running_audio_integration_tests():
-    root = Path(__file__).resolve().parents[1]
-    workflow = (root / ".github" / "workflows" / "tests.yml").read_text(encoding="utf-8")
-    assert "choco install ffmpeg --yes --no-progress" in workflow
-    assert "sudo apt-get install --yes xvfb ffmpeg" in workflow
-    assert "FFmpeg for audio integration tests (CI only)" in workflow
-
-
-def test_pinned_windows_ffmpeg_audit_is_digest_locked_and_runs_real_acceptance_checks():
-    root = Path(__file__).resolve().parents[1]
-    workflow = (root / ".github" / "workflows" / "ffmpeg-candidate-audit.yml").read_text(encoding="utf-8")
-    script = (root / "tools" / "run_ffmpeg_candidate_audit.ps1").read_text(encoding="utf-8")
-    for token in (
-        "runs-on: windows-latest",
-        "actions/upload-artifact@v4",
-        "./tools/ensure_ffmpeg.ps1 -Root $env:GITHUB_WORKSPACE",
-    ):
-        assert token in workflow
-    assert chr(8) not in script
-    for token in (
-        "78d1f7728fef503b50a6de5866950a96d7e4db0fdb9dfaa47fc2c6691a48370b",
-        "179056458",
-        "b9ebe81995b58cd4e3177a6c0ad5dc2392f7f7fd",
-        "Get-FileHash -Algorithm SHA256",
-        "& $Ffmpeg -version",
-        "& $Ffmpeg -L",
-        "--enable-version3",
-        "libmp3lame",
-        "tools/import_ffmpeg_notices.ps1",
-        "ffmpeg_notices.py",
-        "probe.mp3",
-        "-f null NUL",
-        "FFMPEG_BUILD_MANIFEST.json",
-    ):
-        assert token in script
-
-def test_windows_builder_uses_the_separate_pinned_ffmpeg_bootstrap_helper():
-    root = Path(__file__).resolve().parents[1]
-    builder = (root / "tools" / "build_windows.ps1").read_text(encoding="utf-8")
-    helper = (root / "tools" / "ensure_ffmpeg.ps1").read_text(encoding="utf-8")
-    for token in (
-        "ensure_ffmpeg.ps1",
-        "-Root $Root",
-        "Pinned FFmpeg dependency bootstrap failed",
-    ):
-        assert token in builder
-    for token in (
-        "run_ffmpeg_candidate_audit.ps1",
-        "GITHUB_WORKSPACE",
-        "RUNNER_TEMP",
-        "FFMPEG_BUILD_MANIFEST.json",
-        "FFMPEG_DEPENDENCY_NOTICES/MANIFEST.json",
-        "Copy-Item -LiteralPath $AuditedExecutable -Destination $Ffmpeg",
-        "Pinned FFmpeg download/audit script failed",
-    ):
-        assert token in helper
-    for pinned in (
-        "$ExpectedFfmpegArchiveSha256 = '78d1f7728fef503b50a6de5866950a96d7e4db0fdb9dfaa47fc2c6691a48370b'",
-        "$ExpectedFfmpegBinarySha256 = '3209f0ba6096189de3f850f65488bdb535177b7e46e0b16e902b3230c5ff74fe'",
-        "$ExpectedFfmpegLicenseSha256 = 'da7eabb7bafdf7d3ae5e9f223aa5bdc1eece45ac569dc21b3b037520b4464768'",
-        "$ExpectedFfmpegSourceCommit = 'b9ebe81995b58cd4e3177a6c0ad5dc2392f7f7fd'",
-        "$ExpectedFfmpegBinaryUrl = 'https://github.com/FFmpeg-Builds/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-lgpl.zip'",
-        "$PinnedActualFfmpegHash",
-        "$PinnedActualFfmpegLicenseHash",
-    ):
-        assert pinned in builder
-
-
-
-def _run_powershell_script(executable, script_path, args, env):
-    return subprocess.run(
-        [executable, "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(script_path), *map(str, args)],
-        text=True,
-        capture_output=True,
-        timeout=60,
-        env=env,
-        check=False,
-    )
-
-
-def test_windows_ffmpeg_bootstrap_copies_audited_outputs_and_restores_environment(tmp_path):
-    if os.name != "nt":
-        pytest.skip("Native PowerShell filesystem behavior is tested on Windows.")
-    executable = shutil.which("pwsh") or shutil.which("powershell")
-    if not executable:
-        pytest.skip("PowerShell is not installed on this Windows runner.")
-
-    root = tmp_path / "project"
-    audit_output = root / "artifacts" / "ffmpeg-candidate-audit"
-    licenses = root / "LICENSES"
-    audit_output.mkdir(parents=True)
-    licenses.mkdir(parents=True)
-    bootstrap = Path(__file__).resolve().parents[1] / "tools" / "ensure_ffmpeg.ps1"
-    audit_script = tmp_path / "fake-audit.ps1"
-    audit_script.write_text(
-        r"""
-$ErrorActionPreference = 'Stop'
-$workspace = $env:GITHUB_WORKSPACE
-$output = Join-Path $workspace 'artifacts/ffmpeg-candidate-audit'
-$licenses = Join-Path $workspace 'LICENSES'
-New-Item -ItemType Directory -Force -Path $output | Out-Null
-New-Item -ItemType Directory -Force -Path (Join-Path $licenses 'FFMPEG_DEPENDENCY_NOTICES') | Out-Null
-[System.IO.File]::WriteAllText((Join-Path $output 'ffmpeg.exe'), 'test-executable')
-[System.IO.File]::WriteAllText((Join-Path $output 'FFMPEG_BUILD_MANIFEST.json'), '{"test":true}')
-[System.IO.File]::WriteAllText((Join-Path $licenses 'FFMPEG_LICENSE.txt'), 'test-license')
-[System.IO.File]::WriteAllText((Join-Path $licenses 'FFMPEG_DEPENDENCY_NOTICES/MANIFEST.json'), '{"files":[]}')
-""".strip(),
-        encoding="utf-8",
-    )
-    wrapper = tmp_path / "invoke-bootstrap.ps1"
-    state_path = tmp_path / "environment.json"
-    wrapper.write_text(
-        r"""
-param([string]$Bootstrap, [string]$Root, [string]$AuditScript, [string]$StatePath)
-$ErrorActionPreference = 'Stop'
-& $Bootstrap -Root $Root -AuditScript $AuditScript
-if (-not $?) { throw 'Bootstrap helper did not complete.' }
-@{
-    workspace = [Environment]::GetEnvironmentVariable('GITHUB_WORKSPACE', 'Process')
-    runner_temp = [Environment]::GetEnvironmentVariable('RUNNER_TEMP', 'Process')
-} | ConvertTo-Json | Set-Content -LiteralPath $StatePath -Encoding UTF8
-""".strip(),
-        encoding="utf-8",
-    )
-    env = os.environ.copy()
-    env["GITHUB_WORKSPACE"] = "original-workspace"
-    env["RUNNER_TEMP"] = "original-runner-temp"
-    result = _run_powershell_script(executable, wrapper, [bootstrap, root, audit_script, state_path], env)
-    assert result.returncode == 0, result.stdout + result.stderr
-    assert (root / "ffmpeg.exe").read_text(encoding="utf-8") == "test-executable"
-    assert (licenses / "FFMPEG_BUILD_MANIFEST.json").read_text(encoding="utf-8") == '{"test":true}'
-    assert (licenses / "FFMPEG_LICENSE.txt").read_text(encoding="utf-8") == "test-license"
-    state = json.loads(state_path.read_text(encoding="utf-8-sig"))
-    assert state == {"workspace": "original-workspace", "runner_temp": "original-runner-temp"}
-
-
-def test_windows_ffmpeg_bootstrap_skips_when_all_inputs_already_exist(tmp_path):
-    if os.name != "nt":
-        pytest.skip("Native PowerShell filesystem behavior is tested on Windows.")
-    executable = shutil.which("pwsh") or shutil.which("powershell")
-    if not executable:
-        pytest.skip("PowerShell is not installed on this Windows runner.")
-
-    root = tmp_path / "project"
-    licenses = root / "LICENSES"
-    notices = licenses / "FFMPEG_DEPENDENCY_NOTICES"
-    notices.mkdir(parents=True)
-    (root / "ffmpeg.exe").write_text("existing-executable", encoding="utf-8")
-    (licenses / "FFMPEG_BUILD_MANIFEST.json").write_text("{}", encoding="utf-8")
-    (licenses / "FFMPEG_LICENSE.txt").write_text("license", encoding="utf-8")
-    (notices / "MANIFEST.json").write_text('{"files":[]}', encoding="utf-8")
-    bootstrap = Path(__file__).resolve().parents[1] / "tools" / "ensure_ffmpeg.ps1"
-    audit_script = tmp_path / "should-not-run.ps1"
-    marker = tmp_path / "audit-ran.txt"
-    audit_script.write_text(
-        '[System.IO.File]::WriteAllText(' + "'" + str(marker) + "'" + ', "called")',
-        encoding="utf-8",
-    )
-    result = subprocess.run(
-        [executable, "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(bootstrap),
-         "-Root", str(root), "-AuditScript", str(audit_script)],
-        text=True,
-        capture_output=True,
-        timeout=60,
-        env=os.environ.copy(),
-        check=False,
-    )
-    assert result.returncode == 0, result.stdout + result.stderr
-    assert (root / "ffmpeg.exe").read_text(encoding="utf-8") == "existing-executable"
-    assert not marker.exists()
-
-def test_ffmpeg_build_manifest_template_matches_the_technically_audited_candidate():
-    root = Path(__file__).resolve().parents[1]
-    manifest = json.loads((root / "LICENSES" / "FFMPEG_BUILD_MANIFEST.template.json").read_text(encoding="utf-8"))
-    assert manifest["version_line"].startswith("ffmpeg version N-129288-gc81e35cf2b-20261125")
-    assert "--enable-version3" in manifest["configuration"]
-    assert "--enable-libmp3lame" in manifest["configuration"]
-    assert "--enable-gpl" not in manifest["configuration"]
-    assert "--enable-nonfree" not in manifest["configuration"]
-    assert manifest["binary_sha256"] == "3209f0ba6096189de3f850f65488bdb535177b7e46e0b16e902b3230c5ff74fe"
-    assert manifest["license_sha256"] == "da7eabb7bafdf7d3ae5e9f223aa5bdc1eece45ac569dc21b3b037520b4464768"
-    assert manifest["archive_sha256"] == "78d1f7728fef503b50a6de5866950a96d7e4db0fdb9dfaa47fc2c6691a48370b"
-
-
-
-def test_real_qwen_smoke_workflow_has_valid_step_scoped_cache_and_offline_environment():
-    root = Path(__file__).resolve().parents[1]
-    workflow = (root / ".github" / "workflows" / "qwen-real-inference.yml").read_text(encoding="utf-8")
-    job = workflow.split("  real-qwen-cpu:", 1)[1]
-    assert "    env:\n      HF_HOME: ${{ runner.temp }}" not in job
-    assert job.count("HF_HOME: ${{ runner.temp }}/huggingface") == 4
-    assert job.count("HF_HUB_OFFLINE: \"1\"") == 2
-    assert job.count("TRANSFORMERS_OFFLINE: \"1\"") == 2
-    assert job.count("HF_DATASETS_OFFLINE: \"1\"") == 2
-    download_step = job.split("- name: Download exact pinned Qwen VoiceDesign and Base snapshots", 1)[1].split("- name: Run real VoiceDesign", 1)[0]
-    assert "HF_HUB_OFFLINE" not in download_step
-    inference_step = job.split("- name: Run real VoiceDesign", 1)[1].split("- name: Upload genuine Qwen audio", 1)[0]
-    assert 'HF_HUB_OFFLINE: "1"' in inference_step
-    assert 'TRANSFORMERS_OFFLINE: "1"' in inference_step
-
-
-
-def test_real_qwen_genesis1_script_uses_actual_worker_and_checks_31_verses_mp3_and_cues():
-    root = Path(__file__).resolve().parents[1]
-    script = (root / "tools" / "qwen_genesis1_real.py").read_text(encoding="utf-8")
-    for token in (
-        "ChapterWorker(",
-        "QwenVoiceBackend(",
-        "ChapterAudioAssembler(",
-        "examples",
-        "genesis_1_kjv_test.txt",
-        '"Genesis 1:3"',
-        '"Genesis 1:6"',
-        '"speaker_id": "god"',
-        "expected_counts = {\"pending\": 0, \"running\": 0, \"complete\": 1, \"failed\": 0}",
-        "len(segments) != 33",
-        '"narrator"',
-        '"god"',
-        "GENUINE_QWEN_GENESIS1_PIPELINE_PASSED",
-        "synthetic_test_backend",
-        "offline_inference",
-    ):
-        assert token in script
-    assert "SyntheticTestBackend" not in script
-
-
-
-def test_real_qwen_workflow_runs_genesis_after_voice_smoke_without_redownloading_models():
-    root = Path(__file__).resolve().parents[1]
-    workflow = (root / ".github" / "workflows" / "qwen-real-inference.yml").read_text(encoding="utf-8")
-    genesis = (root / "tools" / "qwen_genesis1_real.py").read_text(encoding="utf-8")
-    download_at = workflow.index("Download exact pinned Qwen VoiceDesign and Base snapshots")
-    smoke_at = workflow.index("Run real VoiceDesign and Base synthesis with the network disabled")
-    smoke_upload_at = workflow.index("Upload genuine Qwen audio and verification evidence")
-    ffmpeg_at = workflow.index("Install FFmpeg for real Genesis 1 MP3 pipeline")
-    genesis_at = workflow.index("Run full real-Qwen Genesis 1 chapter pipeline offline")
-    genesis_upload_at = workflow.index("Upload genuine Genesis 1 MP3 and timing evidence")
-    assert download_at < smoke_at < smoke_upload_at < ffmpeg_at < genesis_at < genesis_upload_at
-    assert workflow.count("hf download Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign") == 1
-    assert workflow.count("hf download Qwen/Qwen3-TTS-12Hz-1.7B-Base") == 1
-    assert "qwen_genesis1_real.py" in workflow
-    assert 'name: qwen-real-genesis1-pipeline' in workflow
-    assert 'HF_HUB_OFFLINE: "1"' in workflow[genesis_at:genesis_upload_at]
-    assert 'TRANSFORMERS_OFFLINE: "1"' in workflow[genesis_at:genesis_upload_at]
-    for token in (
-        "ChapterWorker(",
-        "AttributionMap(registry, segment_overrides=overrides)",
-        "ChapterAudioAssembler(",
-        "GENUINE_QWEN_GENESIS1_PIPELINE_PASSED",
-    ):
-        assert token in genesis
-    assert "SyntheticTestBackend" not in genesis
-
+    monkeypatch.setattr(sys, "stdout", None)
+    monkeypatch.setattr(sys, "stderr", None)
+
+    assert cli.main() == 0
+    report_path = output / "metadata" / "self_test_report.json"
+    assert report_path.is_file()
+    payload = json.loads(report_path.read_text(encoding="utf-8"))
+    assert payload["ok"] is True
+    assert all(payload["checks"].values())
+    assert payload["ffmpeg"]["version"] == "ffmpeg version test"
 
 
 def test_native_windows_package_acceptance_builds_runs_and_relocates_the_frozen_app():
@@ -832,7 +697,6 @@ def test_native_windows_package_acceptance_builds_runs_and_relocates_the_frozen_
         "relocated-audio-smoke-report.json",
     ):
         assert token in script
-
 
 
 def test_windows_package_acceptance_downloads_assets_before_forcing_offline_mode():
