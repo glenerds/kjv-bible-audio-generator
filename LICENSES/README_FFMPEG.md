@@ -21,7 +21,7 @@ Native Windows GitHub Actions run `45623835915` verified the archive size and ha
 - Version line: `ffmpeg version N-129288-gc81e35cf2b-20261125 Copyright (c) 2000-2026 the FFmpeg developers`.
 - Executable SHA-256: `3209f0ba6096189de3f850f65488bdb535177b7e46e0b16e902b3230c5ff74fe`.
 - License file SHA-256: `da7eabb7bafdf7d3ae5e9f223aa5bdc1eece45ac569dc21b3b037520b4464768`.
-- All 35 dependency notice files passed SHA-256 and byte-size verification against the generated notice manifest.
+- All 35 imported upstream FFmpeg `doc/` files passed SHA-256 and byte-size verification against the generated notice manifest. This verifies the copied documentation bytes; it does **not** establish that those files are a complete set of third-party component license notices for every enabled linked library. That component-level mapping and the corresponding source/relinking obligations remain subject to human review.
 - The workflow artifact includes the Windows executable, build manifest, exact LGPL license file, notice directory and audit report: https://github.com/glenerds/kjv-bible-audio-generator/actions/runs/45623835915 (artifact ID `15027341337`, 14-day retention).
 
 **Technical checks passed; not yet approved for application distribution.** A human must still review all linked codecs/libraries, full source and relinking/source-offer obligations, notice sufficiency and distribution terms. Do not use a different `latest` archive: the fixed archive digest is mandatory.
