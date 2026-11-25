@@ -97,6 +97,9 @@ $Ffmpeg = Join-Path $Root 'ffmpeg.exe'
 $Attribution = Join-Path $Root 'data/speaker-attribution'
 $PackageData = Join-Path $Root 'src/kjv_audio_generator/data'
 $Licenses = Join-Path $Root 'LICENSES'
+$FfmpegManifestPath = Join-Path $Licenses 'FFMPEG_BUILD_MANIFEST.json'
+$FfmpegLicensePath = Join-Path $Licenses 'FFMPEG_LICENSE.txt'
+$FfmpegNoticesManifestPath = Join-Path $Licenses 'FFMPEG_DEPENDENCY_NOTICES/MANIFEST.json'
 
 # Ensure the exact digest-pinned FFmpeg executable and its matching notices exist.
 # The helper skips complete inputs; otherwise it runs the same native audit used by CI.
