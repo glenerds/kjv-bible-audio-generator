@@ -1,9 +1,22 @@
-## 2026-11-25 FFmpeg audit follow-up
+## Latest continuation — 2026-11-25: 0.4.12 source pass and FFmpeg audit pass
 
-The 2026-11-25 Windows x64 LGPL archive was downloaded on an actual Windows runner; its 179,056,458-byte size and SHA-256 78d1f7728fef503b50a6de5866950a96d7e4db0fdb9dfaa47fc2c6691a48370b matched publisher metadata.
-The executable ran -version; its reported configuration did not enable GPL or nonfree options and included --enable-version3; -L identified GNU LGPL version 3.
-The first audit stopped at the libmp3lame check due a backspace character embedded in the script word-boundary regex. The script check is being corrected to literal substring matching with the encoder output printed on failure. Do not infer the encoder is missing from that attempt.
-The actual encoder presence, WAV-to-MP3-to-decode probe, notice import/hash validation, and legal/source obligations remain unverified. Not approved as an app dependency.
+- Source commit `dbc1683046378f5b45aafbd8a6c64db654d0b8fa`, Actions run `45623891120`: Windows 11/Python 3.12 **136 passed**; Ubuntu/Python 3.13 **134 passed, 2 Windows-only skips**; compileall and four PowerShell parse checks passed.
+- The Qwen hash helper streams files in 8 MiB chunks and checks the pinned VoiceDesign/Base plus speech-tokenizer file hashes; the 7 tests use fake small assets. Actual Qwen files are not locally available and no real inference has run.
+- FFmpeg audit run `45623835915` passed on native Windows. Archive: 179,056,458 bytes, SHA-256 `78d1f7728fef503b50a6de5866950a96d7e4db0fdb9dfaa47fc2c6691a48370b`; source commit `b9ebe81995b58cd4e3177a6c0ad5dc2392f7f7fd`.
+- Actual ffmpeg.exe version `N-129288-gc81e35cf2b-20261125`, binary SHA-256 `3209f0ba6096189de3f850f65488bdb535177b7e46e0b16e902b3230c5ff74fe`; -L reported LGPL v3; no GPL/nonfree switches; libmp3lame encode and decode passed.
+- License text hash `da7eabb7bafdf7d3ae5e9f223aa5bdc1eece45ac569dc21b3b037520b4464768`; 35 dependency notice files matched their manifest. Artifact: https://github.com/glenerds/kjv-bible-audio-generator/actions/runs/45623835915 (14-day retention).
+- FFmpeg remains a technical candidate only; source/relinking offer obligations and full license review remain open.
+
+### Immediate next actions
+1. Integrate automatic pinned FFmpeg download, verification, license and notice generation into the Windows builder.
+2. Hash the actual downloaded pinned Qwen model snapshots, then load both engines offline.
+3. Produce and listen to real Genesis 1 and later-chapter recurring-speaker samples.
+4. Run real inference restart/recovery, native Windows package, offline and USB relocation tests.
+5. Finish CPU/RAM/VRAM/speed, all-chapter storage, attribution and license gates.
+
+**Still developer prototype, not ready for user testing.**
+
+---
 ## Latest continuation — 2026-11-25: 0.4.12 model hash hardening
 
 - Validated source/test commit `2785eee6d64afd634cfd9ac4991a8f53a3e7a2b9`, GitHub run `45621233336`: Windows 11/Python 3.12 **135 passed**; Ubuntu/Python 3.13 **133 passed, 2 Windows-only skips**; all three PowerShell scripts parsed; NTFS sparse fixture check passed.

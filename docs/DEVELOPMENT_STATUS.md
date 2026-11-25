@@ -1,9 +1,31 @@
-## 2026-11-25 FFmpeg audit follow-up
+## 0.4.12 / FFmpeg technical audit — 2026-11-25
 
-The 2026-11-25 Windows x64 LGPL archive was downloaded on an actual Windows runner; its 179,056,458-byte size and SHA-256 78d1f7728fef503b50a6de5866950a96d7e4db0fdb9dfaa47fc2c6691a48370b matched publisher metadata.
-The executable ran -version; its reported configuration did not enable GPL or nonfree options and included --enable-version3; -L identified GNU LGPL version 3.
-The first audit stopped at the libmp3lame check due a backspace character embedded in the script word-boundary regex. The script check is being corrected to literal substring matching with the encoder output printed on failure. Do not infer the encoder is missing from that attempt.
-The actual encoder presence, WAV-to-MP3-to-decode probe, notice import/hash validation, and legal/source obligations remain unverified. Not approved as an app dependency.
+### Source CI
+- Commit `dbc1683046378f5b45aafbd8a6c64db654d0b8fa`, Actions run `45623891120`: success.
+- Windows 11 / Python 3.12: **136 passed**; Ubuntu / Python 3.13: **134 passed, 2 Windows-only skips**.
+- NTFS sparse fixture check passed; Python compileall passed; four PowerShell scripts parsed.
+- Windows ADS rejection regression is green.
+
+### Qwen weight integrity
+Implemented the 8 MiB streaming SHA-256 verifier and prepare/build integration. Published hashes are pinned for VoiceDesign main weights (`391e8db219f292c515297cdceeb43e4eae67cdde35fa57e79a6a8a532fca0522`), Base main weights (`38fc7fc51c5e776e840414b6fd443962e9411b9654888fd7913e4da643cb857c`) and both speech-tokenizer weights (`836b7b357f5ea43e889936a3709af68dfe3751881acefe4ecf0dbd30ba571258`). Seven tests cover correct hash values, streaming, missing/corrupt assets and manifest checks. Actual 1.7B model files still have not been downloaded and hashed in this runtime.
+
+### FFmpeg candidate technical audit
+- Native Windows run `45623835915` passed for the 2026-11-25 LGPL archive (179,056,458 bytes; archive SHA-256 `78d1f7728fef503b50a6de5866950a96d7e4db0fdb9dfaa47fc2c6691a48370b`).
+- `ffmpeg.exe` version: `N-129288-gc81e35cf2b-20261125`; binary SHA-256 `3209f0ba6096189de3f850f65488bdb535177b7e46e0b16e902b3230c5ff74fe`.
+- `-L` identifies LGPL v3; configuration includes `--enable-version3` and `--enable-libmp3lame`, with no `--enable-gpl` or `--enable-nonfree`; actual `libmp3lame` WAV-to-MP3 and decode probes passed.
+- Imported license SHA-256 `da7eabb7bafdf7d3ae5e9f223aa5bdc1eece45ac569dc21b3b037520b4464768`; all 35 notice files match the generated manifest. The Actions artifact was downloaded and independently verified.
+- Candidate remains **not approved for application distribution** until complete license/source/relinking/source-offer review.
+
+### Next
+1. Make the Windows build automatically acquire the pinned FFmpeg archive, extract the verified executable and generate/import the matching license and notices.
+2. Obtain the actual pinned Qwen model snapshots and run the new content-hash verifier on the real files.
+3. Run real offline Qwen generation, full Genesis 1 listening and later-chapter speaker continuity checks.
+4. Test real-model restart/recovery, package launch, offline playback and USB relocation.
+5. Complete performance/storage benchmarks and KJV-specific data/model/software license review.
+
+**Not customer-ready.**
+
+---
 ## 0.4.12 hardening checkpoint — 2026-11-25
 
 ### Verified source and CI
