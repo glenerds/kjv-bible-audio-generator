@@ -618,6 +618,7 @@ def test_packaged_launcher_dispatches_through_the_cli_main_entrypoint():
 
 
 def test_windowed_cli_self_test_writes_report_when_stdout_and_stderr_are_missing(tmp_path, monkeypatch):
+    from pathlib import Path
     import json
     import subprocess
     import kjv_audio_generator.__main__ as cli
