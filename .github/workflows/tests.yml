@@ -56,7 +56,8 @@ jobs:
           $paths = @(
             'tools/build_windows.ps1',
             'tools/prepare_assets.ps1',
-            'tools/import_ffmpeg_notices.ps1'
+            'tools/import_ffmpeg_notices.ps1',
+            'tools/run_ffmpeg_candidate_audit.ps1'
           )
           foreach ($path in $paths) {
             $tokens = $null

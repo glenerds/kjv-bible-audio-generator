@@ -575,3 +575,31 @@ def test_pinned_windows_ffmpeg_audit_is_digest_locked_and_runs_real_acceptance_c
         "actions/upload-artifact@v4",
     ):
         assert token in workflow
+
+
+def test_pinned_windows_ffmpeg_audit_is_digest_locked_and_runs_real_acceptance_checks():
+    root = Path(__file__).resolve().parents[1]
+    workflow = (root / ".github" / "workflows" / "ffmpeg-candidate-audit.yml").read_text(encoding="utf-8")
+    script = (root / "tools" / "run_ffmpeg_candidate_audit.ps1").read_text(encoding="utf-8")
+    for token in (
+        "runs-on: windows-latest",
+        "actions/upload-artifact@v4",
+        "./tools/run_ffmpeg_candidate_audit.ps1",
+    ):
+        assert token in workflow
+    for token in (
+        "78d1f7728fef503b50a6de5866950a96d7e4db0fdb9dfaa47fc2c6691a48370b",
+        "179056458",
+        "b9ebe81995b58cd4e3177a6c0ad5dc2392f7f7fd",
+        "Get-FileHash -Algorithm SHA256",
+        "& $Ffmpeg -version",
+        "& $Ffmpeg -L",
+        "--enable-version3",
+        "libmp3lame",
+        "tools/import_ffmpeg_notices.ps1",
+        "ffmpeg_notices.py",
+        "probe.mp3",
+        "-f null NUL",
+        "FFMPEG_BUILD_MANIFEST.json",
+    ):
+        assert token in script
