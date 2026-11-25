@@ -738,3 +738,17 @@ def test_frozen_entrypoint_writes_opt_in_diagnostics_even_when_console_streams_a
         "os.replace(temporary, destination)",
     ):
         assert token in entrypoint
+
+
+
+def test_windows_package_acceptance_keeps_diagnostics_in_evidence_without_self_copy():
+    root = Path(__file__).resolve().parents[1]
+    script = (root / "tools" / "windows_package_acceptance.ps1").read_text(encoding="utf-8")
+    for name in (
+        "self-test-entrypoint-diagnostics.json",
+        "audio-smoke-entrypoint-diagnostics.json",
+        "relocated-self-test-entrypoint-diagnostics.json",
+        "relocated-audio-smoke-entrypoint-diagnostics.json",
+    ):
+        assert name in script
+    assert "Copy-Item -LiteralPath $Diagnostic -Destination (Join-Path $EvidenceRoot $DiagnosticName)" not in script

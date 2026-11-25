@@ -179,12 +179,7 @@ try {
     Copy-Item -LiteralPath $RelocatedSelfReport -Destination (Join-Path $EvidenceRoot 'relocated-self-test-report.json') -Force
     Copy-Item -LiteralPath $RelocatedAudioReport -Destination (Join-Path $EvidenceRoot 'relocated-audio-smoke-report.json') -Force
     Copy-Item -LiteralPath $RelocatedMp3 -Destination (Join-Path $EvidenceRoot 'relocated-qwen-smoke.mp3') -Force
-    foreach ($Diagnostic in @($SelfTestDiagnostics, $AudioDiagnostics, $RelocatedSelfDiagnostics, $RelocatedAudioDiagnostics)) {
-        if (Test-Path $Diagnostic -PathType Leaf) {
-            $DiagnosticName = [System.IO.Path]::GetFileName($Diagnostic)
-            Copy-Item -LiteralPath $Diagnostic -Destination (Join-Path $EvidenceRoot $DiagnosticName) -Force
-        }
-    }
+    # Diagnostics are written directly into EvidenceRoot by the frozen entrypoint.
 
     $Summary = @{
         status = 'passed'
