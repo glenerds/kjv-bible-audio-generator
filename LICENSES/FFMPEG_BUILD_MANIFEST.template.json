@@ -1,0 +1,12 @@
+{
+  "binary_file": "ffmpeg.exe",
+  "binary_sha256": "REPLACE_WITH_THE_EXACT_64_CHARACTER_SHA256_OF_THE_SUPPLIED_BINARY",
+  "version_line": "REPLACE_WITH_THE_FIRST_LINE_OF_ffmpeg_-version",
+  "configuration": "REPLACE_WITH_THE_COMPLETE_CONFIGURATION_LINE_FROM_ffmpeg_-version",
+  "license_spdx": "LGPL-3.0-or-later",
+  "license_file": "FFMPEG_LICENSE.txt",
+  "license_sha256": "REPLACE_WITH_SHA256_OF_THE_EXACT_LICENSE_TEXT_FILE",
+  "binary_source_url": "https://REPLACE-WITH-THE-EXACT-BINARY-DOWNLOAD-URL",
+  "source_url": "https://REPLACE-WITH-THE-MATCHING-FFMPEG-SOURCE-ARCHIVE-OR-COMMIT",
+  "notes": "Only an LGPL build (2.1-or-later or 3.0-or-later) is permitted here. Do not enable --enable-gpl or --enable-nonfree. The exact binary and build configuration must match this manifest. Include the matching LGPL text and comply with FFmpeg's source/relinking obligations before commercial distribution."
+}

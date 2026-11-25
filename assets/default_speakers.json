@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "profiles": [
+    {"speaker_id":"narrator","display_name":"Bible Narrator","aliases":["narrator","reader"],"voice_description":"Mature, warm, clear, measured male narrator; calm and reverent, articulate King James English, consistent timbre.","reference_text":"I will speak clearly and naturally, with a steady and expressive reading voice.","reference_audio":null,"prompt_asset":null,"status":"not_prepared"},
+    {"speaker_id":"unknown_speaker","display_name":"Unassigned Speaker","aliases":["unknown","unassigned"],"voice_description":"Neutral clear supporting voice; use only when a quotation speaker has not been identified.","reference_text":"I will speak clearly and naturally, with a steady and expressive reading voice.","reference_audio":null,"prompt_asset":null,"status":"not_prepared"},
+    {"speaker_id":"god","display_name":"God","aliases":["the LORD","the Lord God","Almighty"],"voice_description":"Deep, resonant, dignified mature male voice; calm authority, controlled warmth, never harsh or theatrical.","reference_text":"I will speak clearly and naturally, with a steady and expressive reading voice.","reference_audio":null,"prompt_asset":null,"status":"not_prepared"},
+    {"speaker_id":"jesus","display_name":"Jesus","aliases":["Christ","the Son","the Son of man","the Lord Jesus"],"voice_description":"Warm, compassionate adult male voice; clear, grounded, gentle authority, thoughtful pauses.","reference_text":"I will speak clearly and naturally, with a steady and expressive reading voice.","reference_audio":null,"prompt_asset":null,"status":"not_prepared"},
+    {"speaker_id":"moses","display_name":"Moses","aliases":["Moses the servant of the LORD"],"voice_description":"Mature male voice, weathered and thoughtful, steady low-mid register, measured delivery.","reference_text":"I will speak clearly and naturally, with a steady and expressive reading voice.","reference_audio":null,"prompt_asset":null,"status":"not_prepared"}
+  ]
+}

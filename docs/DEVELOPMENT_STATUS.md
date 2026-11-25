@@ -1,0 +1,60 @@
+# Development Status — KJV Bible Audio Generator 0.4.10
+
+Last updated: 2026-11-24.
+
+## Summary
+
+Version 0.4.10 extends atomic persistence to arbitrary Qwen-generated files and makes FFmpeg notice imports transactional. Qwen-generated reference WAVs and `.pt` prompt assets now use extension-preserving unique staging and fsync/atomic replace. FFmpeg documentation and license files are fully staged and verified before replacing the old set, with rollback on a mid-commit failure. **123 automated tests pass**, including clean source execution; the isolated wheel install verifies the KJV structure metadata. No real Qwen speech or native Windows app has been tested; this remains a developer prototype, not a customer release.
+
+| Area | Status | Notes |
+|---|---|---|
+| KJV import/structure | Implemented | Canonical 66 books / 1,189 chapters / 31,102 verses |
+| Character/verse editors | Implemented | GUI-tested; exact verse text preservation |
+| Speaker attribution | Partial | No complete verified openly redistributable KJV word-level speaker map |
+| Speaker seed import | Hardened | GUI and CLI merge suggestions; manual data retained; overlaps queued |
+| Recurring voices | Software path implemented | No audible real-Qwen validation |
+| Qwen ICL prompt | Mock-tested | Transcript retained; old-prompt migration; no real inference |
+| JSON persistence | Atomic writes | Shared writer for all application JSON outputs |
+| Qwen reference audio | Atomic file commit | SoundFile writes extension-preserving temp WAV, fsync + atomic replace |
+| Qwen prompt asset | Atomic file commit | torch.save writes unique `.tmp.pt` stage; fixed-name race removed |
+| MP3 output commit | Atomic copy | Unique destination-local staging and fsync/replace |
+| FFmpeg notices | Transactional import | Verify staged notices before swap; rollback restores previous bundle |
+| SQLite queue/recovery | Automated tests | WAL, atomic claims, recovery, hashes, retries and path rebasing |
+| Genesis 1 pipeline | Synthetic integration | 31 KJV fixture verses, 33 cues; synthetic MP3 only |
+| Wheel 0.4.10 | Built/installed | 53,951 bytes; SHA in README/SOURCE_ARCHIVE |
+| Source ZIP 0.4.10 | Built/verified | 73 files; hash in sidecar; clean extraction and 123 tests |
+| Windows FFmpeg | Candidate only | Actual binary/notices/encode probe unverified |
+| Windows application | Not built | No native Windows build or acceptance test |
+| Genuine Genesis 1 | Not generated | `qwen_tts` and model snapshots unavailable |
+| Full Bible | Not generated | No real 1,189-chapter audio run |
+
+## 0.4.10 atomic file and notice-import changes
+
+- `atomic_output_path()` creates a unique staging file next to its target, retaining the final extension so libraries such as SoundFile can select the WAV container. It rejects empty output, fsyncs, then atomically replaces the destination. Exceptions preserve prior bytes and clean up staging.
+- `QwenVoiceBackend.prepare_profiles()` uses this helper for VoiceDesign reference WAVs and Qwen `.pt` prompt payloads. The old fixed `.pt.tmp` name was removed.
+- `copy_file_atomic()` now delegates to the same helper, rejects non-file sources and fsyncs before replacement.
+- `tools/ffmpeg_notices.py` stages `doc/`, `LICENSE.txt` and its manifest under a temporary root, verifies the complete SHA-256 set, then swaps both live destinations. Failure while staging leaves old files alone; failure during the second commit rolls back the first and restores the old license. A successful re-import removes stale entries from the previous set.
+- Regression cases cover normal and failed third-party file writers, extension preservation, unique stage names, import-copy failure, mid-commit rollback and successful all-at-once notice replacement.
+
+## Test environment and results
+
+Linux x86_64, Python 3.13.5, PyTorch 2.10 and SoundFile installed, host FFmpeg 7.1.5. Qwen `qwen_tts` is absent, Hugging Face DNS fails, and no Windows host/PowerShell/Wine/Windows FFmpeg is available.
+
+- Compileall: PASS.
+- Focused atomic-output / FFmpeg notice / Qwen adapter suite: **45 passed**.
+- Full source suite: `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 xvfb-run -a env PYTHONPATH=src pytest -q` — **123 passed**, process exit 0.
+- Wheel 0.4.10 isolated install: PASS; installed version and all 66 / 1,189 / 31,102 KJV structure counts verified.
+- Installed-wheel `--self-test`: exit 2, expected because model folders, asset manifest, Qwen runtime and bundled Windows FFmpeg are absent.
+- Installed-wheel `--audio-smoke`: exit 3, expected because Base model is missing.
+- Fresh 73-file 0.4.10 source ZIP: ZIP CRC, extraction, compileall and all **123 tests** pass.
+- Genesis 1 remains a synthetic audio integration, not real Qwen speech.
+
+## Attribution research
+
+No complete, verified, openly redistributable KJV word-level dialogue-speaker map has been identified. MACULA/FCBH projections are not KJV-specific and remain provisional. Keep them human-reviewable; do not bundle proprietary data without permission. See `ATTRIBUTION_DATASET_RESEARCH_2026-11-24.md`.
+
+## Remaining release gates
+
+Authentic Qwen Genesis 1 and later-chapter recurring-voice listening test; real-model recovery/long run; approved Windows LGPL FFmpeg binary/source/license/dependency notices/encoder probe; native Windows one-folder build/offline launch/playback/USB; CPU/RAM and full 1,189 MP3/cue storage/integrity validation; KJV cast/quotation and software/model/codec/data licensing review.
+
+**Not ready for customer installation/testing.**

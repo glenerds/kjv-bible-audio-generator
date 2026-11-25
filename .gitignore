@@ -1,0 +1,15 @@
+# Large, externally downloaded model weights
+models/
+
+# Build and test outputs
+build/
+dist/
+*.egg-info/
+.pytest_cache/
+__pycache__/
+*.py[cod]
+
+# Per-run outputs and local model profile assets
+KJV_Bible_Audio/
+*.reference.wav
+*.prompt.pt
