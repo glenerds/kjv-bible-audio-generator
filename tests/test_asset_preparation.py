@@ -863,6 +863,17 @@ def test_cudnn_9102_eula_and_acknowledgements_are_pinned_and_required_for_window
     assert "'CUDNN_9.10.2.21_EULA.html'" in required_list
     assert "'CUDNN_9.10.2.21_ACKNOWLEDGEMENTS.html'" in required_list
     assert "'NVIDIA_CUDNN_NOTICE_MANIFEST.json'" in required_list
+    for token in (
+        "$ExpectedCudnnEulaUri",
+        "$ExpectedCudnnAcknowledgementsUri",
+        "$CudnnNoticeManifest.cudnn_version -ne '9.10.2.21'",
+        "$CudnnNoticeManifest.cudnn_archive -ne 'cudnn-windows-x86_64-9.10.2.21_cuda12-archive.zip'",
+        "$ActualCudnnEulaSha256",
+        "$ActualCudnnAcknowledgementsSha256",
+        "cuDNN notice manifest does not match",
+        "cuDNN EULA or acknowledgements SHA-256 differs",
+    ):
+        assert token in builder
 
 
 def test_windows_cu128_build_requires_exact_cudnn_9102_runtime():
