@@ -2,6 +2,11 @@
 
 The short packaged Windows speech test has passed Whisper on both the original and relocated MP3s. The full Genesis 1 speech-recognition gate is now implemented, with the latest run using the current cue-timeline checks and evidence-preserving workflow. Its result is still pending.
 
+## Qwen early-stop audit
+- Inspected the **exact pinned Base model** `generation_config.json` at revision `fd4b254389122332181a7c3db7f27e918eec64e3`. It sets `max_new_tokens: 8192`, `do_sample: true`, `temperature: 0.9`, `top_k: 50`, `top_p: 1.0` and `repetition_penalty: 1.05`. Source: https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-Base/blob/fd4b254389122332181a7c3db7f27e918eec64e3/generation_config.json
+- The production adapter does not pass a custom lower token cap; it uses `non_streaming_mode=True` and leaves the checkpoint's generation defaults intact. The pinned configuration therefore does not reveal an accidental short max-token limit. Keep sampling/voice settings unchanged unless the fresh audio/transcript evidence points to a specific parameter-level cause.
+- The upstream Qwen wrapper documents `max_new_tokens` as an optional codec-token ceiling and forwards the resolved generation kwargs to the underlying model. Its voice-clone API also distinguishes non-streaming text input from simulated streaming input. Reference: https://github.com/QwenLM/Qwen3-TTS/blob/main/qwen_tts/inference/qwen3_tts_model.py#L2681-L2925
+
 ## Latest activity after the prior checkpoint
 - The initial Ubuntu suite exposed one stale test expectation in `tests/test_asset_preparation.py`: it searched for the old workflow step name "Upload genuine Genesis 1 MP3 and timing evidence". The workflow had correctly been renamed to "Upload genuine Genesis 1 MP3 and speech-verification evidence" when the transcript report was added. No application or Qwen runtime code failed.
 - Updated the test to assert the actual workflow sequence: pinned model download, real Qwen smoke, FFmpeg setup, full Genesis 1 run, long-form Whisper transcript, then evidence upload. It also asserts the verifier script is part of the workflow.
