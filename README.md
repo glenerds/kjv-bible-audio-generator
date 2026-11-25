@@ -27,9 +27,11 @@ This is the newest recovery checkpoint. It supersedes any earlier statement that
 - Cross-platform run 45661437815 (commit 32c48c6451b2d1c4190d7798bab73b33b7a5414c) passed on both systems:
   - Windows 11 / Python 3.12: **156 passed**; all five PowerShell build/helper scripts parsed successfully.
   - Ubuntu 24.04 / Python 3.13: **152 passed, 4 skipped** (Windows-specific checks).
+- The follow-up run 45661869132 (commit 96b23b539dca3475c481b898d895fa2b17340591) also passed: **156 Windows tests**, all five PowerShell scripts parsed, and **152 Ubuntu tests passed with 4 Windows-only skips**.
 - API compatibility review caught that Whisper tiny.en rejects explicit task/language overrides because it is English-only. The verifier now uses the checkpoint's built-in English transcription defaults, matching its official Transformers example.
-- Latest corrected cross-platform run 45661869132 and latest corrected native Windows package run 45661869168 both target commit 96b23b539dca3475c481b898d895fa2b17340591 and are in progress. The package runner is still in its native Windows build/acceptance step; real model synthesis and ASR are pending.
-- Earlier Windows package runs 45661437869 and 45661097956 were started before that final Whisper compatibility correction; they are superseded by run 45661869168. No speech-transcript pass is claimed yet.
+- Native Windows portable package run 45662371988 is running on commit f40bdcb945e621531df5af2eb0b9863393479525. It includes the final MP3 transcript check and, only after that passes, a separate upload of the full app as kjv-bible-audio-generator-portable-windows-x64. Current stage is the actual Windows package build/acceptance; ASR and app upload have not completed yet.
+- Cross-platform run 45662371848 on that same commit has Ubuntu green and Windows still running its full test suite. A later README-only update triggered run 45662604672; no product code changed there.
+- No speech-transcript pass or releasable app artifact is claimed yet.
 
 ## Release status
 **Developer prototype only—not ready for customer testing.** The speech-completeness check is implemented but awaits its real native Windows result. The user's reported cutoff remains open until the final packaged MP3s are transcribed successfully and the audio is listened to again. Target RTX 2070 Super performance/VRAM, physical USB relocation, long-run stop/recovery, complete 1,189-chapter generation, Bible-wide speaker attribution, subjective listening approval and final license/source review also remain open.
