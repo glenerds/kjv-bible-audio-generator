@@ -130,11 +130,13 @@ $CudnnNoticeManifestPath = Join-Path $Licenses 'NVIDIA_CUDNN_NOTICE_MANIFEST.jso
 $CudnnNoticeManifest = Get-Content -Raw -LiteralPath $CudnnNoticeManifestPath | ConvertFrom-Json
 $ExpectedCudnnEulaUri = 'https://docs.nvidia.com/deeplearning/cudnn/backend/v9.10.2/reference/eula.html'
 $ExpectedCudnnAcknowledgementsUri = 'https://docs.nvidia.com/deeplearning/cudnn/backend/v9.10.2/reference/acknowledgements.html'
+$ExpectedCudnnReleaseMetadataUri = 'https://github.com/pytorch/pytorch/blob/9d06effee01af3b8a06988b18cc724037ca03940/RELEASE.md'
 if ($CudnnNoticeManifest.schema_version -ne 1 -or
     $CudnnNoticeManifest.cudnn_version -ne '9.10.2.21' -or
     $CudnnNoticeManifest.cudnn_archive -ne 'cudnn-windows-x86_64-9.10.2.21_cuda12-archive.zip' -or
     $CudnnNoticeManifest.eula_url -ne $ExpectedCudnnEulaUri -or
-    $CudnnNoticeManifest.acknowledgements_url -ne $ExpectedCudnnAcknowledgementsUri) {
+    $CudnnNoticeManifest.acknowledgements_url -ne $ExpectedCudnnAcknowledgementsUri -or
+    $CudnnNoticeManifest.upstream_release_metadata -ne $ExpectedCudnnReleaseMetadataUri) {
     throw 'cuDNN notice manifest does not match the pinned PyTorch 2.10 CUDA 12.8 runtime.'
 }
 $ActualCudnnEulaSha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $Licenses 'CUDNN_9.10.2.21_EULA.html')).Hash.ToLowerInvariant()
