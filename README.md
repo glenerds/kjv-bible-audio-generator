@@ -1,3 +1,32 @@
+# Continuation handoff — 2026-11-25 (real Qwen CPU test workflow correction)
+
+This is the current recovery point for the next chat.
+
+## Exact starting state
+- Public source repository: https://github.com/glenerds/kjv-bible-audio-generator
+- Application prototype version: **0.4.12**.
+- Current source head before this README checkpoint: `d91909df6acc5372438b1cb3dfa8d03c2058d79b`.
+- Source CI run `45629599733` completed successfully on that commit. Earlier same-commit Ubuntu summary: **136 passed, 4 skipped** (Windows-only NTFS and PowerShell checks); native Windows job also passed.
+- The verified FFmpeg candidate audit remains green at run `45623835915`; archive/binary/license hashes and 35 imported notice hashes are documented below. The Windows builder's new automatic FFmpeg bootstrap is still being validated in the newest runs; do not claim a complete one-folder package.
+- Added `tools/qwen_real_smoke.py`: it invokes the production `QwenVoiceBackend` to build a VoiceDesign reference, create a Base voice-clone prompt and synthesize a real sample. It rejects empty/non-finite/silent WAVs and records run-time and memory metrics. It never uses `SyntheticTestBackend`.
+- Added `.github/workflows/qwen-real-inference.yml` to download both pinned snapshots, verify actual full-file SHA-256 values, switch model inference to offline mode, run the real adapter, and upload the sample/metrics.
+- First workflow run `45629596039` failed immediately before allocating a job. Cause: it used the `runner.temp` context in job-level `env`; that context is unavailable there. **No models were downloaded, no checkpoint hashes were checked and no inference was attempted.**
+- An attempted local workflow rewrite did not commit because its guard expected the wrong count of `runner.temp` references. No change from that attempted rewrite should be assumed present.
+
+## Next actions
+1. Move Hugging Face cache configuration from job-level `env` to step-level `env` on the install, download and inference steps. Keep `HF_HUB_OFFLINE=1`, `TRANSFORMERS_OFFLINE=1`, and `HF_DATASETS_OFFLINE=1` only for inference after model downloads and hash checks finish.
+2. Add/retain a regression test asserting the workflow contains exact pinned revisions, invokes the production Qwen adapter, disables network access for inference, and does not place `runner.temp` at job scope.
+3. Commit and check that GitHub allocates a real Ubuntu runner. If accepted, inspect disk/RAM before downloads; let both exact model snapshots download; verify the large file SHA-256 values; then inspect every inference step/log. A pre-runner failure is not a model test.
+4. If the runner gets as far as inference, fix only evidence-based API/model/resource failures. Do not replace Qwen output with mock or synthetic audio.
+5. Once the real Qwen CPU smoke passes, preserve its WAV/metrics artifact and run a second chapter/voice-continuity sample. Then continue full recovery, packaging and target-PC performance gates.
+
+## Truthful release status
+**Still a developer prototype, not ready for user/customer testing.** FFmpeg's standalone native Windows technical audit has passed, but source/relinking obligations still require review. No genuine Qwen inference or listening QA has passed yet; no real model hashes have been run locally; no packaged Windows app, offline playback, USB relocation, complete 1,189-chapter output or system-performance benchmark has passed.
+
+The user requires the README be updated before each "Continue working" request and an explicit pause note whenever work stops.
+
+---
+
 # Continuation handoff — 2026-11-25 (FFmpeg build bootstrap verification)
 
 This checkpoint is recorded before the next engineering pass.
