@@ -50,7 +50,7 @@ def test_queue_seeds_all_1189_bible_chapters_in_canonical_order(tmp_path):
         for book, chapter_count in BOOKS
         for chapter in range(1, chapter_count + 1)
     ]
-    document = parse_text("\\n".join(lines))
+    document = parse_text("\n".join(lines))
     chapters = document.ordered_chapters()
 
     assert len(chapters) == TOTAL_CHAPTERS == 1189
