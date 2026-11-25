@@ -1,3 +1,30 @@
+# Continuation checkpoint — 2026-11-25 (150 Windows / 146 Ubuntu tests green; package evidence finalizing)
+
+This checkpoint supersedes the source counts in the earlier process-wait note below.
+
+## Latest source verification
+- Main commit before this README update: `dbcc0ed9aaaf7c75cd89a2a595749256928fb51a`.
+- Cross-platform source run `45653136914` passed:
+  - Windows 11 / Python 3.12: **150 passed** in 115.23 seconds; NTFS sparse-file fixture passed; all five PowerShell scripts parsed.
+  - Ubuntu 24.04 / Python 3.13: **146 passed, 4 skipped** (Windows-only NTFS/PowerShell cases).
+- Added regression test for the Windows package evidence-copy bug: diagnostics are already written directly into the evidence folder, so the acceptance script must not copy them back onto themselves.
+
+## Latest portable Windows acceptance progress
+- Package run `45653137050` is running on commit `dbcc0ed9aaaf7c75cd89a2a595749256928fb51a`.
+- The previous waited-process package run `45650728281` reached the last evidence-copy loop only after passing original frozen self-test, real Qwen audio smoke, original MP3 decode, moved-folder/new-drive-letter relocation, relocated self-test, relocated Qwen audio smoke and relocated MP3 decode. It failed only because `Copy-Item` tried to copy each diagnostic file onto itself in the same evidence folder.
+- Removed that self-copy in `tools/windows_package_acceptance.ps1`; current run should now finish summary generation and upload compact evidence. This latest run's outcome is **pending**, not yet accepted.
+- Windows GUI window creation itself has not yet been explicitly smoke-tested; current acceptance exercises the frozen CLI in windowed mode. Physical USB removal/reinsertion and the user's actual GPU playback are also still pending.
+
+## Next
+1. Confirm package run `45653137050` reaches `WINDOWS_PORTABLE_PACKAGE_ACCEPTANCE_PASSED` and uploads its artifact. Inspect self-test/audio reports, diagnostics, MP3s and manifest evidence.
+2. Add a short frozen-GUI launch smoke (open the Tkinter window and auto-close it under a test-only environment variable), then rerun the native Windows package if required.
+3. Measure the on-disk portable folder size and decide a practical, complete download artifact strategy. Do not claim a user-downloadable package until its complete files are preserved and verified.
+4. Keep physical USB, offline operation, restart/recovery, cross-chapter speaker continuity, full 1,189-chapter output, target-PC GPU/RAM/speed and final software/model/codec/source-license review open.
+
+## Release status
+**Developer prototype only—not ready for user/customer testing.** Genuine offline Qwen CPU inference and full Genesis 1 MP3/cues have passed. Source tests are green on Windows and Ubuntu. The native Windows frozen app has passed the core CLI/audio/relocation checks in a run that failed only at evidence finalization; the corrected acceptance run must finish and upload evidence before the package gate is marked passed.
+
+---
 # Continuation checkpoint — 2026-11-25 (source suite green; frozen process wait in acceptance)
 
 This is the newest recovery note. Retain the earlier genuine-Qwen and Genesis 1 evidence below.
