@@ -652,3 +652,40 @@ def test_fake_qwen_weight_fixtures_are_sparse_on_windows(tmp_path):
         assert allocated < 1024 * 1024, (
             f"{path} reserves {allocated:,} bytes on disk for a {expected_size:,}-byte sparse fixture"
         )
+
+
+def test_qwen_releases_voice_design_before_loading_base_to_bound_vram(tmp_path, monkeypatch):
+    FakeQwenModel.calls = []
+    fake_module = types.ModuleType("qwen_tts")
+    fake_module.Qwen3TTSModel = FakeQwenModel
+    monkeypatch.setitem(sys.modules, "qwen_tts", fake_module)
+
+    design = tmp_path / "models" / "design"
+    base = tmp_path / "models" / "base"
+    design.mkdir(parents=True)
+    base.mkdir(parents=True)
+    make_fake_model_folder(design)
+    make_fake_model_folder(base)
+
+    backend = QwenVoiceBackend(QwenSettings(design, base, "cpu"), tmp_path / "assets")
+    loaded = []
+    original_load_model = backend._load_model
+
+    def tracked_load_model(path):
+        model_path = Path(path)
+        if model_path == design:
+            assert backend._base_model is None, "Base must be released before VoiceDesign loads."
+        elif model_path == base:
+            assert backend._design_model is None, "VoiceDesign must be released before Base loads."
+        loaded.append(model_path)
+        return original_load_model(model_path)
+
+    monkeypatch.setattr(backend, "_load_model", tracked_load_model)
+    backend.prepare_profiles([
+        VoiceProfile("narrator", "Narrator", [], "Clear warm narrator"),
+        VoiceProfile("god", "God", [], "Low, calm, resonant voice"),
+    ])
+
+    assert loaded == [design, base]
+    assert backend._design_model is None
+    assert backend._base_model is not None
