@@ -25,6 +25,27 @@ def _write_json_atomic(path: Path, payload: object) -> None:
     write_json_atomic(path, payload)
 
 
+def _emit_cli_json(path: Path, payload: dict[str, object]) -> None:
+    """Persist CLI reports even when PyInstaller's windowed executable has no console."""
+    _write_json_atomic(path, payload)
+    stream = sys.stdout
+    if stream is not None:
+        try:
+            print(json.dumps(payload, indent=2, ensure_ascii=False), file=stream)
+        except (OSError, ValueError):
+            # A windowed executable may have stdout attached to an already-closed stream.
+            pass
+
+
+def _emit_cli_error(message: str) -> None:
+    stream = sys.stderr
+    if stream is not None:
+        try:
+            print(message, file=stream)
+        except (OSError, ValueError):
+            pass
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Generate individual KJV chapter MP3s with persistent character voices")
     parser.add_argument("--gui", action="store_true", help="Open the desktop application")
@@ -87,9 +108,16 @@ def main() -> int:
             errors.append(str(exc))
             ffmpeg_info = {"path": str(ffmpeg_path) if ffmpeg_path else shutil.which("ffmpeg"), "bundled": bool(bundled_ffmpeg().is_file())}
         ok = all(checks.values())
-        print(json.dumps({"ok": ok, "checks": checks, "errors": errors,
-                          "voice_design_model": str(design), "base_model": str(base), "ffmpeg": ffmpeg_info,
-                          "note": "Preflight only; it does not synthesize real speech."}, indent=2))
+        payload = {
+            "ok": ok,
+            "checks": checks,
+            "errors": errors,
+            "voice_design_model": str(design),
+            "base_model": str(base),
+            "ffmpeg": ffmpeg_info,
+            "note": "Preflight only; it does not synthesize real speech.",
+        }
+        _emit_cli_json(args.output / "metadata" / "self_test_report.json", payload)
         return 0 if ok else 2
     if args.audio_smoke:
         try:
@@ -100,10 +128,27 @@ def main() -> int:
             from .models import SpeechSegment, VerseRef
             seg = SpeechSegment(VerseRef("Genesis",1,1),0,"narrator","This is a test of the King James Bible narrator voice.")
             mp3, cue = assembler.write_chapter("Genesis",0+1,[seg],[(samples,sr)])
-            print(json.dumps({"ok":True,"audio":str(mp3),"cue":str(cue),"samples":len(samples),"sample_rate":sr},indent=2))
+            payload = {
+                "ok": True,
+                "audio": str(mp3),
+                "cue": str(cue),
+                "samples": len(samples),
+                "sample_rate": sr,
+            }
+            _emit_cli_json(args.output / "metadata" / "audio_smoke_report.json", payload)
             return 0
         except Exception as exc:
-            print(f"Real Qwen audio smoke failed: {type(exc).__name__}: {exc}", file=sys.stderr); return 3
+            payload = {
+                "ok": False,
+                "error_type": type(exc).__name__,
+                "error": str(exc),
+            }
+            try:
+                _emit_cli_json(args.output / "metadata" / "audio_smoke_report.json", payload)
+            except OSError:
+                pass
+            _emit_cli_error(f"Real Qwen audio smoke failed: {type(exc).__name__}: {exc}")
+            return 3
     if args.speaker_projections:
         try:
             out = args.output.resolve()

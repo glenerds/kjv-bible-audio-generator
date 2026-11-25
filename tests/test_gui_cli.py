@@ -239,6 +239,15 @@ def test_gui_review_queue_filters_ambiguous_verses_and_clears_them_after_review(
     root.destroy()
 
 
+
+def test_cli_no_arguments_still_opens_gui(monkeypatch):
+    called = []
+    monkeypatch.setattr(sys, "argv", ["KJV Bible Audio Generator.exe"])
+    monkeypatch.setattr("kjv_audio_generator.__main__.gui_main", lambda: called.append(True))
+    assert cli_main() == 0
+    assert called == [True]
+
+
 def test_cli_gui_flag_opens_gui(monkeypatch):
     called = []
     monkeypatch.setattr(sys, "argv", ["kjv-audio-generator", "--gui"])
@@ -597,3 +606,65 @@ def test_gui_speaker_import_preserves_reviewed_work_and_merges_conflicts(tmp_pat
     assert len(again.provenance["import_history"]) == 1
     assert again.provenance["suggestion_sources"] == saved.provenance["suggestion_sources"]
     root.destroy()
+
+
+
+def test_packaged_launcher_dispatches_through_the_cli_main_entrypoint():
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[1]
+    entrypoint = (root / "tools" / "entrypoint.py").read_text(encoding="utf-8")
+    assert "from kjv_audio_generator.__main__ import main" in entrypoint
+    assert "raise SystemExit(main())" in entrypoint
+
+
+def test_windowed_cli_self_test_writes_report_when_stdout_and_stderr_are_missing(tmp_path, monkeypatch):
+    import json
+    import subprocess
+    import kjv_audio_generator.__main__ as cli
+    import kjv_audio_generator.audio as audio
+
+    model_root = tmp_path / "models"
+    model_root.mkdir()
+    (model_root / "KJV_QWEN_ASSET_MANIFEST.json").write_text("{}", encoding="utf-8")
+    output = tmp_path / "portable-output"
+    ffmpeg = tmp_path / "ffmpeg.exe"
+    ffmpeg.write_bytes(b"test-ffmpeg")
+
+    class FakeBackend:
+        def __init__(self, settings, cache):
+            self.settings = settings
+            Path(cache).mkdir(parents=True, exist_ok=True)
+
+        def _require_directory(self, folder, label):
+            return None
+
+        def generation_fingerprint(self):
+            return "verified-model-fingerprint"
+
+        def _imports(self):
+            return object()
+
+    monkeypatch.setattr(sys, "argv", [
+        "KJV Bible Audio Generator.exe",
+        "--self-test",
+        "--models", str(model_root),
+        "--output", str(output),
+    ])
+    monkeypatch.setattr(cli, "QwenVoiceBackend", FakeBackend)
+    monkeypatch.setattr(cli, "bundled_ffmpeg", lambda: ffmpeg)
+    monkeypatch.setattr(audio, "find_ffmpeg", lambda path=None: str(ffmpeg))
+    monkeypatch.setattr(
+        cli.subprocess,
+        "run",
+        lambda *args, **kwargs: subprocess.CompletedProcess(args[0], 0, "ffmpeg version test\n", ""),
+    )
+    monkeypatch.setattr(sys, "stdout", None)
+    monkeypatch.setattr(sys, "stderr", None)
+
+    assert cli.main() == 0
+    report_path = output / "metadata" / "self_test_report.json"
+    assert report_path.is_file()
+    payload = json.loads(report_path.read_text(encoding="utf-8"))
+    assert payload["ok"] is True
+    assert all(payload["checks"].values())
+    assert payload["ffmpeg"]["version"] == "ffmpeg version test"

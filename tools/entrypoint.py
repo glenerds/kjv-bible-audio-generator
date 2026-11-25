@@ -1,4 +1,4 @@
-from kjv_audio_generator.app import GeneratorApp
+from kjv_audio_generator.__main__ import main
 
 if __name__ == "__main__":
-    GeneratorApp().run()
+    raise SystemExit(main())
