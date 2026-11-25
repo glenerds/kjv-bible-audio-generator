@@ -69,6 +69,17 @@ foreach ($Model in $ModelSources) {
     }
 }
 
+# Verify the full multi-gigabyte weight contents, not just their presence or size.
+# The helper uses the publisher's file SHA-256 values and streams files in chunks.
+$IntegrityScript = Join-Path $PSScriptRoot 'qwen_asset_integrity.py'
+if (-not (Test-Path $IntegrityScript -PathType Leaf)) { throw 'Pinned Qwen asset integrity verifier is missing.' }
+$IntegrityOutput = & $Python $IntegrityScript report --models-root $Models
+if ($LASTEXITCODE -ne 0) {
+    throw 'Pinned Qwen weight verification failed. Do not package these model folders; remove the damaged weights and rerun preparation.'
+}
+$IntegrityRecords = @(($IntegrityOutput -join [Environment]::NewLine) | ConvertFrom-Json)
+if ($IntegrityRecords.Count -ne 2) { throw 'Qwen weight verifier did not return exactly two pinned model records.' }
+
 # The Clear Bible speaker seed is pinned to an exact commit. Verify each downloaded
 # file against its Git object SHA-1 before using it in the offline app bundle.
 $SeedCommit = 'b09e308a3a1aafdb7d6c75baf0fe2a31d61601da'
@@ -149,6 +160,8 @@ if ((Get-GitBlobSha1 $QwenLicensePath) -ne 'c347eb5ec781d2702623e8e2b5923fa1a766
 $ManifestModels = @()
 foreach ($Model in $ModelSources) {
     $Destination = Join-Path $Models $Model.Folder
+    $IntegrityRecord = @($IntegrityRecords | Where-Object { $_.repo -eq $Model.Repo }) | Select-Object -First 1
+    if (-not $IntegrityRecord) { throw "Verified Qwen weight hashes are missing from report: $($Model.Repo)" }
     $ManifestModels += @{
         repo = $Model.Repo
         revision = $Model.Revision
@@ -156,8 +169,10 @@ foreach ($Model in $ModelSources) {
         kind = $Model.Kind
         config_sha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $Destination 'config.json')).Hash.ToLowerInvariant()
         speech_tokenizer_config_sha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $Destination 'speech_tokenizer/config.json')).Hash.ToLowerInvariant()
-        model_bytes = (Get-Item (Join-Path $Destination 'model.safetensors')).Length
-        speech_tokenizer_bytes = (Get-Item (Join-Path $Destination 'speech_tokenizer/model.safetensors')).Length
+        model_sha256 = [string]$IntegrityRecord.model_sha256
+        speech_tokenizer_sha256 = [string]$IntegrityRecord.speech_tokenizer_sha256
+        model_bytes = [long]$IntegrityRecord.model_bytes
+        speech_tokenizer_bytes = [long]$IntegrityRecord.speech_tokenizer_bytes
     }
 }
 $AssetManifest = @{
