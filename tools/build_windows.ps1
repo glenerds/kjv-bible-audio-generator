@@ -118,6 +118,29 @@ foreach ($LicenseFile in @('GLYSSEN_MIT.txt','QWEN3_TTS_APACHE_2.0.txt','FFMPEG_
 # provenance, a matching binary SHA-256, an LGPL-only build and the actual MP3 encoder.
 if (-not (Test-Path $Ffmpeg -PathType Leaf)) { throw 'Place a verified LGPL Windows ffmpeg.exe beside this script before packaging.' }
 $FfmpegManifest = Get-Content -Raw -LiteralPath (Join-Path $Licenses 'FFMPEG_BUILD_MANIFEST.json') | ConvertFrom-Json
+$ExpectedFfmpegArchiveSha256 = '78d1f7728fef503b50a6de5866950a96d7e4db0fdb9dfaa47fc2c6691a48370b'
+$ExpectedFfmpegArchiveBytes = 179056458L
+$ExpectedFfmpegBinarySha256 = '3209f0ba6096189de3f850f65488bdb535177b7e46e0b16e902b3230c5ff74fe'
+$ExpectedFfmpegLicenseSha256 = 'da7eabb7bafdf7d3ae5e9f223aa5bdc1eece45ac569dc21b3b037520b4464768'
+$ExpectedFfmpegSourceCommit = 'b9ebe81995b58cd4e3177a6c0ad5dc2392f7f7fd'
+if ($FfmpegManifest.archive_sha256 -ne $ExpectedFfmpegArchiveSha256 -or [long]$FfmpegManifest.archive_bytes -ne $ExpectedFfmpegArchiveBytes) {
+    throw 'FFmpeg build manifest does not identify the exact digest-pinned 2026-11-25 archive.'
+}
+if ($FfmpegManifest.binary_sha256 -ne $ExpectedFfmpegBinarySha256) {
+    throw 'FFmpeg executable hash in the build manifest is not the pinned candidate hash.'
+}
+if ($FfmpegManifest.license_sha256 -ne $ExpectedFfmpegLicenseSha256) {
+    throw 'FFmpeg license hash in the build manifest is not the pinned candidate license.'
+}
+if ($FfmpegManifest.license_spdx -ne 'LGPL-3.0-or-later' -or $FfmpegManifest.source_url -ne "https://github.com/FFmpeg-Builds/FFmpeg-Builds/tree/$ExpectedFfmpegSourceCommit") {
+    throw 'FFmpeg build manifest source or license identity does not match the pinned candidate.'
+}
+$PinnedActualFfmpegHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $Ffmpeg).Hash.ToLowerInvariant()
+$PinnedActualFfmpegLicenseHash = (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $Licenses 'FFMPEG_LICENSE.txt')).Hash.ToLowerInvariant()
+if ($PinnedActualFfmpegHash -ne $ExpectedFfmpegBinarySha256 -or $PinnedActualFfmpegLicenseHash -ne $ExpectedFfmpegLicenseSha256) {
+    throw 'FFmpeg binary or license bytes do not match the compiled-in trusted hashes.'
+}
+
 $AllowedFfmpegLicenses = @('LGPL-2.1-or-later', 'LGPL-3.0-or-later')
 if ($FfmpegManifest.license_spdx -notin $AllowedFfmpegLicenses) { throw 'FFmpeg manifest must declare LGPL-2.1-or-later or LGPL-3.0-or-later; GPL/nonfree builds are not accepted.' }
 foreach ($Field in @('binary_sha256','version_line','configuration','binary_source_url','source_url','license_file','license_sha256')) {
