@@ -124,6 +124,27 @@ foreach ($LicenseFile in @('GLYSSEN_MIT.txt','QWEN3_TTS_APACHE_2.0.txt','TOKENIZ
     }
 }
 
+# Verify the cuDNN legal files against the asset-preparation manifest before
+# freezing; the manifest records the exact bytes actually downloaded.
+$CudnnNoticeManifestPath = Join-Path $Licenses 'NVIDIA_CUDNN_NOTICE_MANIFEST.json'
+$CudnnNoticeManifest = Get-Content -Raw -LiteralPath $CudnnNoticeManifestPath | ConvertFrom-Json
+$ExpectedCudnnEulaUri = 'https://docs.nvidia.com/deeplearning/cudnn/backend/v9.10.2/reference/eula.html'
+$ExpectedCudnnAcknowledgementsUri = 'https://docs.nvidia.com/deeplearning/cudnn/backend/v9.10.2/reference/acknowledgements.html'
+if ($CudnnNoticeManifest.schema_version -ne 1 -or
+    $CudnnNoticeManifest.cudnn_version -ne '9.10.2.21' -or
+    $CudnnNoticeManifest.cudnn_archive -ne 'cudnn-windows-x86_64-9.10.2.21_cuda12-archive.zip' -or
+    $CudnnNoticeManifest.eula_url -ne $ExpectedCudnnEulaUri -or
+    $CudnnNoticeManifest.acknowledgements_url -ne $ExpectedCudnnAcknowledgementsUri) {
+    throw 'cuDNN notice manifest does not match the pinned PyTorch 2.10 CUDA 12.8 runtime.'
+}
+$ActualCudnnEulaSha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $Licenses 'CUDNN_9.10.2.21_EULA.html')).Hash.ToLowerInvariant()
+$ActualCudnnAcknowledgementsSha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $Licenses 'CUDNN_9.10.2.21_ACKNOWLEDGEMENTS.html')).Hash.ToLowerInvariant()
+if ($ActualCudnnEulaSha256 -ne [string]$CudnnNoticeManifest.eula_sha256 -or
+    $ActualCudnnAcknowledgementsSha256 -ne [string]$CudnnNoticeManifest.acknowledgements_sha256) {
+    throw 'cuDNN EULA or acknowledgements SHA-256 differs from the preparation manifest.'
+}
+
+
 # A random ffmpeg.exe is not an acceptable release dependency. Require reproducible
 # provenance, a matching binary SHA-256, an LGPL-only build and the actual MP3 encoder.
 if (-not (Test-Path $Ffmpeg -PathType Leaf)) { throw 'Place a verified LGPL Windows ffmpeg.exe beside this script before packaging.' }
