@@ -54,7 +54,7 @@ def validate_chapter_cues(source_path: Path, cue_path: Path) -> dict[str, Any]:
         grouped[reference].append(text)
         start = float(item.get("start_seconds", 0))
         end = float(item.get("end_seconds", 0))
-        if start < previous_end - 0.01 or end <= start:
+        if start < 0 or start < previous_end - 0.01 or end <= start:
             raise ValueError(f"Invalid or overlapping cue timing for {reference}: {start} to {end}.")
         previous_end = end
 
