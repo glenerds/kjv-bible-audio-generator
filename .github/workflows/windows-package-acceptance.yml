@@ -54,12 +54,14 @@ jobs:
 
       - name: Verify complete spoken text from final packaged MP3s with pinned Whisper
         if: success()
+        shell: bash
         env:
           HF_HOME: ${{ runner.temp }}/whisper-model-cache
           HF_HUB_DISABLE_TELEMETRY: "1"
           HF_HUB_ENABLE_HF_TRANSFER: "0"
           OMP_NUM_THREADS: "4"
         run: |
+          set -euo pipefail
           python tools/verify_smoke_transcript.py \
             --audio artifacts/windows-package-acceptance/packaged-qwen-smoke-decoded.wav \
             --audio artifacts/windows-package-acceptance/relocated-qwen-smoke-decoded.wav \
