@@ -1,3 +1,40 @@
+# Continuation handoff — 2026-11-25 (Windows hardening and CI follow-up)
+
+This entry is written before the next engineering pass so another chat can resume from an explicit checkpoint.
+
+## Current verified repository state
+- Public source repository: https://github.com/glenerds/kjv-bible-audio-generator
+- Project prototype version: **0.4.11**.
+- Latest README section records the follow-up ADS assertion change: the Windows notice importer now emits/recognizes the precise "alternate data streams" diagnostic. Local Linux compileall passed and the suite reported **126 passed, 2 Windows-only skips** at that checkpoint.
+- Earlier native Windows validation proved the NTFS sparse-fixture correction using `FSCTL_SET_ZERO_DATA`; the isolated Windows allocation probe passed for the 3.5 GB and 650 MB logical model fixtures with less than 1 MiB physical allocation.
+- Earlier full Windows run reported **125 passed, 1 failed** because NTFS alternate data streams were not detected by ordinary directory enumeration. A Windows-specific `FindFirstStreamW` / `FindNextStreamW` enumeration fix was then added. The source-license ADS check and cross-platform raw path validator were added.
+- The user-provided latest continuation notes identify commit `5465db6` as the follow-up assertion correction. Do not assume its newer hosted Windows run passed until the exact check-run and job logs are inspected.
+- Hash verification for downloaded model-weight assets is being added/checked; do not claim the full model files have been downloaded or independently verified in the current runtime unless the latest code and real asset hashes are inspected.
+
+## Work carried out in the most recent pass (from the current conversation handoff)
+- Re-reviewed the Windows sparse-file/NTFS failure sequence and the corrective test fixture.
+- Inspected the FFmpeg notice import security gap involving Windows alternate data streams.
+- Added native Windows enumeration of named streams and rejection of named ADS in source, staged and installed notice/license files.
+- Added/adjusted tests for Windows-only ADS behavior and platform-independent unsafe-name validation.
+- Corrected the test assertion to accept the explicit "alternate data streams" diagnostic; this should not weaken the importer security rule.
+- Investigated Windows CI runs, job steps, logs, packaging and model asset integrity. The last exact hosted-run outcome after the assertion correction still needs confirmation.
+
+## Next engineering actions
+1. Inspect current `main` SHA and recent commits. Confirm the actual contents of the ADS validation, source-license handling, path validator, model hash checks and CI workflow.
+2. Inspect the newest GitHub Actions run for the current head; retrieve the full Windows and Ubuntu job steps/logs. Do not rely on a stale run, a partial UI state, or an inaccessible log endpoint.
+3. Run the Windows-only ADS and sparse allocation probes first, then the full Windows/Python 3.12 suite and PowerShell AST/parser checks. If another failure occurs, reproduce and fix that exact failure; do not infer a pass from the Ubuntu job.
+4. Run clean local compileall and the complete Linux test suite for every source/test change.
+5. Audit model snapshot integrity checks against the exact pinned upstream file revisions and SHA-256 data; validate every large weight/shard/tokenizer file, not just configuration files or expected byte sizes.
+6. Continue the Windows packaging/FFmpeg build validation, but do not approve the candidate until its actual executable hash, `-version`, `-L`, configuration, `libmp3lame`, licenses/notices and WAV→MP3→decode probe are verified.
+7. Preserve the major release blockers: genuine offline Qwen VoiceDesign and Base inference; all 31 real Genesis 1 verse audio and listening QA; recurring speaker voice consistency; model-backed pause/stop/retry/crash recovery; native Windows packaged app launch/playback; USB relocation; CPU/RAM/VRAM/time benchmarks; full-book output/storage measurement; KJV-specific attribution and license review.
+
+## Critical honesty/status rule
+The passing Linux suite and isolated Windows NTFS fixture are not proof of a passing complete Windows product build. Mocks/synthetic MP3 are not Qwen inference. No Windows executable, offline playback, full real-Qwen chapter, USB portability, full 1,189-chapter run or customer-ready release may be claimed without the corresponding test evidence.
+
+The user has asked that every future **"Continue working" / "keep working"** request be preceded by a README checkpoint update, and that any pause be explicitly stated. This README is the recovery point.
+
+---
+
 # Follow-up test assertion — 2026-11-24
 
 The Windows ADS enumerator reports a precise error phrase ("alternate data streams"). The pre-existing invalid-source-path test's accepted error tokens were only "unsafe", "reserved" and "manifest.json", which would make the Windows ADS case fail on the assertion text even when the importer correctly rejects the source. Expanded the assertion's accepted diagnostic tokens to include "alternate data streams"; the separate Windows-only license ADS test still checks the exact phrase. No change to product behavior.
