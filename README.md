@@ -10,7 +10,7 @@ The full synthetic worker simulation passed across all **66 books, 1,189 chapter
 - All **31 Genesis 1 source verses** generated as **33 speech segments** (31 narrator segments and 2 God segments). The final queue report recorded **1 complete, 0 pending, 0 failed**.
 - Final MP3: **3,286,701 bytes**, 24 kHz mono, **273.84 seconds** decoded duration, 6,572,160 frames, peak 0.809992 and RMS 0.118891. CPU job elapsed time was about **1,708 seconds (28.5 minutes)**. This is a CPU correctness measurement, not a target-GPU speed estimate.
 - Long-form Whisper report passed: **797 expected words / 793 recognized**, **0.9761 (97.61%) word-sequence similarity**, opening phrase found and final phrase of verse 31 found. All 31 verse cues passed exact source-text reconstruction; 33 cue segments were present. Some ASR substitutions remain (for example, “firmament”/“ferma­ment” and “fowl”/“foul”), so this is not a claim of perfect word-level recognition or human listening approval.
-- The actual recording is available here for human listening: [Genesis 1 real-Qwen MP3](sandbox:/mnt/data/qwenrun15_genesis/genesis1-output/Genesis/Genesis_001.mp3).
+- The actual recording is available here for human listening: [Genesis 1 real-Qwen MP3 and transcript evidence (GitHub Actions run 15)](https://github.com/glenerds/kjv-bible-audio-generator/actions/runs/45679773309).
 
 ### Narrator continuity across Genesis 1 and Genesis 2
 - The same Qwen workflow completed the separate real-Qwen cross-chapter test; artifact `qwen-real-cross-chapter-voice-identity`, ID **15055103776**.
