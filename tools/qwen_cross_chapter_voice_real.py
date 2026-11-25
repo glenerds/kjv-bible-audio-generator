@@ -36,6 +36,11 @@ PINNED_MODELS = {
 }
 
 
+def prompt_metadata_path(prompt_path: Path) -> Path:
+    """Return the metadata sibling used by QwenVoiceBackend for a saved prompt."""
+    return prompt_path.with_suffix(".prompt.json")
+
+
 def sha256_file(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as handle:
@@ -260,7 +265,7 @@ def main() -> int:
     voice_assets = args.output_dir / "metadata" / "voice_assets"
     narrator_reference = voice_assets / "narrator.reference.wav"
     narrator_prompt = voice_assets / "narrator.prompt.pt"
-    narrator_prompt_meta_path = voice_assets / "narrator.prompt.json"
+    narrator_prompt_meta_path = prompt_metadata_path(narrator_prompt)
     for path in (narrator_reference, narrator_prompt, narrator_prompt_meta_path):
         if not path.is_file() or path.stat().st_size == 0:
             raise RuntimeError(f"Persistent narrator voice asset is missing: {path}")
