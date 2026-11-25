@@ -100,6 +100,9 @@ try {
     $LicenseSha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath $LicenseFile).Hash.ToLowerInvariant()
     $Manifest = @{
         binary_file = 'ffmpeg.exe'
+        archive_sha256 = $ArchiveSha256
+        archive_bytes = [long]$ExpectedArchiveBytes
+        source_commit = $SourceCommit
         binary_sha256 = $BinarySha256
         version_line = $VersionLine
         configuration = $Configuration
