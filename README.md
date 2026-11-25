@@ -1,39 +1,48 @@
-# Continuation checkpoint — 2026-11-25 (full-Bible queue green; 31,102-verse worker test and Genesis ASR running)
+# Continuation checkpoint — 2026-11-25 (full-Bible simulation and real Genesis audio passed; license notice rebuild running)
 
-The short packaged Windows sentence has passed Whisper on four independent MP3 outputs across two successful native Windows package runs. The second portable app is uploaded. The 1,189-chapter queue test is now green on Windows and Ubuntu. A further synthetic worker integration is testing the complete 31,102-verse / 1,189-chapter processing loop, while the separate genuine-Qwen Genesis 1 full-audio transcript remains in progress.
+The full synthetic worker simulation passed across all **66 books, 1,189 chapters and 31,102 verse records**. The real-Qwen Genesis 1 chapter also passed long-form Whisper. The independent Genesis 1–2 narrator continuity test passed. A second native Windows package run passed both original and relocated short-sentence Whisper checks. Current work is revalidating the new Tokenizers license notice in a fresh Windows package and completing a more explicit redistribution review.
 
-## Verified full-Bible queue and parser milestones
-- The queue test `test_queue_seeds_all_1189_bible_chapters_in_canonical_order` is green in source workflow **45682982827** (run 130), commit `323242e6b5aa32ac411434a226399f2b127f4b2a`:
-  - Windows 11 / Python 3.12: **167 passed, 1 skipped** (no hosted GUI desktop); all five PowerShell build/helper scripts parsed successfully.
-  - Ubuntu 24.04 / Python 3.13: **163 passed, 4 skipped** (Windows/NTFS-only).
-- It parses a fixture with every canonical KJV chapter, seeds the actual SQLite queue with **1,189 pending rows**, verifies the first and last chapters are Genesis 1 and Revelation 22, checks all sequence keys are ascending and unique, and confirms the first three claims are Genesis 1, 2 and 3.
-- The first run `45682936456` (run 129) failed only because its test fixture used a literal backslash-n instead of line breaks and therefore parsed one chapter. The exact fixture line was corrected in commit `323242e6b5aa32ac411434a226399f2b127f4b2a`; run 130 passed. This was a test fixture issue, not a queue/database code failure.
+## Newly verified end-to-end results
 
-## New complete worker-loop simulation
-- Added `tests/test_full_bible_worker.py`, which constructs the full KJV canonical structure with **66 books, 1,189 chapters and 31,102 verse records**, then sends the entire document through the actual `ChapterWorker`, `QueueStore`, report writer and output reconciliation layout.
-- The test uses `SyntheticTestBackend` plus a clearly labeled test-only placeholder assembler; it intentionally does **not** claim to generate decodable MP3 audio or exercise Qwen. Its purpose is to test full-Bible chapter scheduling, per-verse processing, 1,189 output/cue pairs and final generation-report counts without 1,189 FFmpeg launches.
-- Cross-platform run **45683750987** (run 132) is in progress at commit `cc2f42789a5a11cddf6da4b249c088ea68a39eb3`. No pass is claimed yet.
+### Real Qwen Genesis 1 chapter and long-form speech check
+- Genuine-Qwen workflow run **45679773309** (run 15) completed successfully on commit `0458ae45146e1ad0fba634b767d244c8e0cdde01`; evidence artifact `qwen-real-genesis1-pipeline`, ID **15056296040**.
+- Production path was `ChapterWorker + QwenVoiceBackend + ChapterAudioAssembler`, with `qwen-tts==0.1.1`, pinned SHA-256 model snapshots, offline inference, CPU device and no synthetic backend.
+- All **31 Genesis 1 source verses** generated as **33 speech segments** (31 narrator segments and 2 God segments). The final queue report recorded **1 complete, 0 pending, 0 failed**.
+- Final MP3: **3,286,701 bytes**, 24 kHz mono, **273.84 seconds** decoded duration, 6,572,160 frames, peak 0.809992 and RMS 0.118891. CPU job elapsed time was about **1,708 seconds (28.5 minutes)**. This is a CPU correctness measurement, not a target-GPU speed estimate.
+- Long-form Whisper report passed: **797 expected words / 793 recognized**, **0.9761 (97.61%) word-sequence similarity**, opening phrase found and final phrase of verse 31 found. All 31 verse cues passed exact source-text reconstruction; 33 cue segments were present. Some ASR substitutions remain (for example, “firmament”/“ferma­ment” and “fowl”/“foul”), so this is not a claim of perfect word-level recognition or human listening approval.
+- The actual recording is available here for human listening: [Genesis 1 real-Qwen MP3](sandbox:/mnt/data/qwenrun15_genesis/genesis1-output/Genesis/Genesis_001.mp3).
 
-## Second successful native Windows portable package
-- Package workflow run **45679773296** (run 28) completed successfully on commit `0458ae45146e1ad0fba634b767d244c8e0cdde01`.
-- The frozen app build, five-check self-test, genuine Qwen CPU smoke, FFmpeg MP3 decode, simulated `Z:` relocation, relocated self-test and relocated Qwen smoke all passed.
-- Pinned Whisper then passed for both final MP3s:
-  - Original packaged MP3: **3.76 s**, exact recognized text “This is a test of the King James Bible narrator voice.”, similarity **1.0**, final phrase present.
-  - Relocated MP3: **4.24 s**, same exact full transcript, similarity **1.0**, final phrase present.
-- Evidence artifact `windows-portable-package-acceptance`, ID **15053954142**. Full app artifact `kjv-bible-audio-generator-portable-windows-x64`, ID **15055775380**, **14,264,796,841 bytes** (~13.282 GiB).
-- The first successful Windows package run remains **45668073328** (run 25), artifact IDs `15049837796` (evidence) and `15049962652` (application). Across the two package runs, four independently generated short-sentence MP3s were transcribed; all four matched the full expected sentence exactly.
-- Drive relocation used `subst` on NTFS, not a physical removable USB. Both package smoke tests used CPU mode on GitHub-hosted Windows; target RTX 2070 Super CUDA validation remains open.
+### Narrator continuity across Genesis 1 and Genesis 2
+- The same Qwen workflow completed the separate real-Qwen cross-chapter test; artifact `qwen-real-cross-chapter-voice-identity`, ID **15055103776**.
+- One `ChapterWorker` and one `QwenVoiceBackend` completed **2 chapters, 0 failed**, using **one voice-preparation batch**. Both outputs decoded as MP3.
+- Narrator profile fingerprint was identical before and after the chapter boundary: `9f8d384a970268fcdbff18532894d9615481c37227b01387c8656936f7acab40`.
+- Narrator prompt SHA-256 was identical at both chapter syntheses: `680fbd00ae9e1849fbf54d79d7e6e4c623c92e9db32886889906ae608e846432`. This confirms the saved narrator prompt was reused across Genesis 1 and 2; it does not certify subjective voice quality for every character.
 
-## Full Genesis 1 Qwen speech verification
-- Genuine-Qwen run **45679773309** (run 15) passed runtime installation, exact model snapshot/hash verification, offline VoiceDesign/Base synthesis, smoke artifact upload and FFmpeg setup. It remains on full Genesis 1 chapter generation offline.
-- Its separate real-Qwen short smoke artifact `15053038849` contains a non-silent 24 kHz waveform (90,240 frames / **3.76 s**, peak 0.729127, RMS 0.147869). Those are waveform metrics only, not a transcript-completeness result.
-- I independently compared the prior real Genesis 1 artifact `15049086018` to the exact KJV fixture: **31/31 verse cue texts match exactly** after joining split speech segments; all **33** cue segments are chronological and non-overlapping; the final cue ends at the declared **268.88 s** duration. This confirms the new verifier's real-world source/cue assumptions.
-- The current Qwen run still needs to finish full chapter synthesis, run long-form Whisper against the decoded chapter MP3, upload the transcript report, and complete its independent Genesis 1–2 narrator prompt-hash check.
+### Full-Bible worker and queue simulation
+- Cross-platform run **45683750987** (run 132) passed on commit `cc2f42789a5a11cddf6da4b249c088ea68a39eb3`:
+  - Windows 11 / Python 3.12: **168 passed, 1 skipped** (no hosted GUI desktop); all five PowerShell build/helper scripts parsed successfully.
+  - Ubuntu 24.04 / Python 3.13: **164 passed, 4 skipped** (Windows/NTFS-only checks).
+- Added `tests/test_full_bible_worker.py`: the actual `ChapterWorker`, `QueueStore` and generation report were exercised with **66 books, 1,189 chapters and 31,102 verses**. It verified 1,189 completed jobs, 1,189 placeholder MP3 paths, 1,189 cue files, 31,102 cue segments and Genesis 1 through Revelation 22 report ordering.
+- This full-size worker run intentionally used `SyntheticTestBackend` and a test-only placeholder assembler, not Qwen and not decodable audio. It is a queue/scheduler/report correctness test, not a full-Bible speech run.
+- Separate full queue-seeding test **45682982827** (run 130) also passed: 1,189 rows, canonical unique sequence keys, and first claims Genesis 1–3.
 
-## Current release status
-**Developer prototype only; not cleared for customer use.** The Windows short smoke has passed on four new package MP3s, and the 1,189-row SQLite queue test is green. Still open: full-Bible worker simulation run 132, genuine Genesis 1 long-form ASR and cross-chapter run, human listening approval, target RTX 2070 Super CUDA/VRAM, physical USB, long-run stop/recovery, complete real-Qwen 1,189-chapter generation, Bible-wide speaker attribution and final license/source review.
+## Windows portable package status
+- Native Windows package run **45679773296** (run 28) completed successfully. It built the portable app, passed the self-test, generated real Qwen smoke audio, decoded original and relocated MP3s, passed the `subst Z:` relocation test, and passed pinned Whisper on both final MP3s.
+- Both Whisper results were exact full-sentence matches (similarity **1.0**): “This is a test of the King James Bible narrator voice.” The original was 3.76 seconds and the relocated copy 4.24 seconds.
+- App artifact: `kjv-bible-audio-generator-portable-windows-x64`, ID **15055775380**, **14,264,796,841 bytes** (~13.282 GiB). Evidence artifact: `windows-portable-package-acceptance`, ID **15053954142**.
+- This is a simulated drive-letter relocation on NTFS, not a physical USB test. It used CPU mode on a GitHub-hosted Windows runner; RTX 2070 Super CUDA/VRAM validation remains open.
 
----
+## License and redistribution review
+
+A detailed inventory is now in [`docs/RELEASE_DISTRIBUTION_LICENSE_AUDIT_2026-11-25.md`](docs/RELEASE_DISTRIBUTION_LICENSE_AUDIT_2026-11-25.md).
+
+- The run-28 package manifest included Qwen Apache-2.0, PyTorch LICENSE/NOTICE, ONNX Runtime LICENSE/ThirdPartyNotices, FFmpeg LGPL license/build manifest/imported docs, speaker-attribution CC BY 4.0 and Glyssen MIT notices, and KJV verse-count MIT attribution.
+- The manifest did not contain a Tokenizers 0.22.2 license text. Added `LICENSES/TOKENIZERS_APACHE_2.0.txt` from upstream commit `f383101a26663708484cac0727792aad74f78234`, with the exact Git-blob SHA checked. `tools/prepare_assets.ps1` now downloads and verifies the same immutable source, and a regression test checks that behavior.
+- Fresh package acceptance **45713227116** (run 29) is rebuilding the app with this notice. Source test runs **45713222520**, **45713227079**, **45713241922** and **45713313915** are validating the notice/test changes; results are pending at this checkpoint.
+- **Distribution is not legally cleared.** There is no root `LICENSE` file and no `project.license` field in `pyproject.toml`; the owner must choose the project’s own license rather than having one invented. The packaged CUDA runtime includes NVIDIA DLLs whose separate redistribution terms have not been independently audited. FFmpeg’s source/relinking/source-offer obligations and full enabled-library notice coverage still require human review.
+
+## Remaining release gates
+**Developer prototype only; not ready for customer distribution.** Human listening approval, fresh package verification that the Tokenizers notice appears in the final manifest, app-source license choice, NVIDIA/CUDA terms, complete FFmpeg component review, physical USB operation, RTX 2070 Super CUDA/VRAM performance, long-run stop/recovery, real-Qwen generation of all 1,189 chapters, KJV-wide speaker attribution and final release review remain open.
 
 
 
