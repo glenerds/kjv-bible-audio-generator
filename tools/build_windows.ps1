@@ -98,56 +98,10 @@ $Attribution = Join-Path $Root 'data/speaker-attribution'
 $PackageData = Join-Path $Root 'src/kjv_audio_generator/data'
 $Licenses = Join-Path $Root 'LICENSES'
 
-# First-time builds acquire the exact digest-pinned LGPL candidate themselves.
-# The same audit script is used by CI and by local developer packaging; it checks
-# the archive, executable, LGPL output, encoder, actual MP3 cycle and notices.
-$FfmpegManifestPath = Join-Path $Licenses 'FFMPEG_BUILD_MANIFEST.json'
-$FfmpegLicensePath = Join-Path $Licenses 'FFMPEG_LICENSE.txt'
-$FfmpegNoticesManifestPath = Join-Path $Licenses 'FFMPEG_DEPENDENCY_NOTICES/MANIFEST.json'
-$FfmpegSetupNeeded = (-not (Test-Path $Ffmpeg -PathType Leaf)) -or
-    (-not (Test-Path $FfmpegManifestPath -PathType Leaf)) -or
-    (-not (Test-Path $FfmpegLicensePath -PathType Leaf)) -or
-    (-not (Test-Path $FfmpegNoticesManifestPath -PathType Leaf))
-if ($FfmpegSetupNeeded) {
-    $FfmpegAuditScript = Join-Path $PSScriptRoot 'run_ffmpeg_candidate_audit.ps1'
-    if (-not (Test-Path $FfmpegAuditScript -PathType Leaf)) {
-        throw 'The pinned FFmpeg acquisition/audit script is missing.'
-    }
-    Write-Host 'FFmpeg files are incomplete; downloading and auditing the pinned LGPL candidate.'
-    $OldWorkspace = [Environment]::GetEnvironmentVariable('GITHUB_WORKSPACE', 'Process')
-    $OldRunnerTemp = [Environment]::GetEnvironmentVariable('RUNNER_TEMP', 'Process')
-    if ([string]::IsNullOrWhiteSpace($OldRunnerTemp)) {
-        $env:RUNNER_TEMP = Join-Path ([System.IO.Path]::GetTempPath()) ('kjv-ffmpeg-' + [Guid]::NewGuid().ToString('N'))
-        New-Item -ItemType Directory -Force -Path $env:RUNNER_TEMP | Out-Null
-    }
-    $env:GITHUB_WORKSPACE = $Root
-    try {
-        & $FfmpegAuditScript
-        if (-not $?) { throw 'The pinned FFmpeg download/audit script failed.' }
-        $FfmpegAuditOutput = Join-Path $Root 'artifacts/ffmpeg-candidate-audit'
-        $AuditedFfmpeg = Join-Path $FfmpegAuditOutput 'ffmpeg.exe'
-        $AuditedManifest = Join-Path $FfmpegAuditOutput 'FFMPEG_BUILD_MANIFEST.json'
-        if (-not (Test-Path $AuditedFfmpeg -PathType Leaf) -or
-            -not (Test-Path $AuditedManifest -PathType Leaf) -or
-            -not (Test-Path $FfmpegLicensePath -PathType Leaf) -or
-            -not (Test-Path $FfmpegNoticesManifestPath -PathType Leaf)) {
-            throw 'The pinned FFmpeg audit did not produce the executable, manifest, license and complete notice set.'
-        }
-        Copy-Item -LiteralPath $AuditedFfmpeg -Destination $Ffmpeg -Force
-        Copy-Item -LiteralPath $AuditedManifest -Destination $FfmpegManifestPath -Force
-    } finally {
-        if ($null -eq $OldWorkspace) {
-            Remove-Item Env:GITHUB_WORKSPACE -ErrorAction SilentlyContinue
-        } else {
-            $env:GITHUB_WORKSPACE = $OldWorkspace
-        }
-        if ($null -eq $OldRunnerTemp) {
-            Remove-Item Env:RUNNER_TEMP -ErrorAction SilentlyContinue
-        } else {
-            $env:RUNNER_TEMP = $OldRunnerTemp
-        }
-    }
-}
+# Ensure the exact digest-pinned FFmpeg executable and its matching notices exist.
+# The helper skips complete inputs; otherwise it runs the same native audit used by CI.
+& (Join-Path $PSScriptRoot 'ensure_ffmpeg.ps1') -Root $Root
+if (-not $?) { throw 'Pinned FFmpeg dependency bootstrap failed.' }
 
 foreach ($DataFile in @('Clear-Aligned-Projections.tsv','character_detail.semantic_data.tsv','LICENSE.md','ATTRIBUTION.md')) {
     if (-not (Test-Path (Join-Path $Attribution $DataFile) -PathType Leaf)) {

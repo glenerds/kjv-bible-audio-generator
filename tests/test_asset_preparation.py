@@ -557,30 +557,6 @@ def test_cross_platform_ci_installs_ffmpeg_before_running_audio_integration_test
 def test_pinned_windows_ffmpeg_audit_is_digest_locked_and_runs_real_acceptance_checks():
     root = Path(__file__).resolve().parents[1]
     workflow = (root / ".github" / "workflows" / "ffmpeg-candidate-audit.yml").read_text(encoding="utf-8")
-    for token in (
-        "runs-on: windows-latest",
-        "78d1f7728fef503b50a6de5866950a96d7e4db0fdb9dfaa47fc2c6691a48370b",
-        "179056458",
-        "b9ebe81995b58cd4e3177a6c0ad5dc2392f7f7fd",
-        "Get-FileHash -Algorithm SHA256",
-        "$EncoderOutput -notmatch 'libmp3lame'",
-        "& $Ffmpeg -version",
-        "& $Ffmpeg -L",
-        "--enable-version3",
-        "libmp3lame",
-        "tools/import_ffmpeg_notices.ps1",
-        "ffmpeg_notices.py",
-        "probe.mp3",
-        "-f null NUL",
-        "FFMPEG_BUILD_MANIFEST.json",
-        "actions/upload-artifact@v4",
-    ):
-        assert token in workflow
-
-
-def test_pinned_windows_ffmpeg_audit_is_digest_locked_and_runs_real_acceptance_checks():
-    root = Path(__file__).resolve().parents[1]
-    workflow = (root / ".github" / "workflows" / "ffmpeg-candidate-audit.yml").read_text(encoding="utf-8")
     script = (root / "tools" / "run_ffmpeg_candidate_audit.ps1").read_text(encoding="utf-8")
     for token in (
         "runs-on: windows-latest",
@@ -606,20 +582,126 @@ def test_pinned_windows_ffmpeg_audit_is_digest_locked_and_runs_real_acceptance_c
     ):
         assert token in script
 
-
-def test_windows_builder_bootstraps_the_pinned_ffmpeg_candidate_when_inputs_are_missing():
+def test_windows_builder_uses_the_separate_pinned_ffmpeg_bootstrap_helper():
     root = Path(__file__).resolve().parents[1]
-    script = (root / "tools" / "build_windows.ps1").read_text(encoding="utf-8")
+    builder = (root / "tools" / "build_windows.ps1").read_text(encoding="utf-8")
+    helper = (root / "tools" / "ensure_ffmpeg.ps1").read_text(encoding="utf-8")
+    for token in (
+        "ensure_ffmpeg.ps1",
+        "-Root $Root",
+        "Pinned FFmpeg dependency bootstrap failed",
+    ):
+        assert token in builder
     for token in (
         "run_ffmpeg_candidate_audit.ps1",
         "GITHUB_WORKSPACE",
         "RUNNER_TEMP",
         "FFMPEG_BUILD_MANIFEST.json",
         "FFMPEG_DEPENDENCY_NOTICES/MANIFEST.json",
-        "Copy-Item -LiteralPath $AuditedFfmpeg -Destination $Ffmpeg",
-        "The pinned FFmpeg download/audit script failed",
+        "Copy-Item -LiteralPath $AuditedExecutable -Destination $Ffmpeg",
+        "Pinned FFmpeg download/audit script failed",
     ):
-        assert token in script
-    assert "$ActualFfmpegHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $Ffmpeg)" in script
-    assert "$FfmpegLicenseOutput = & $Ffmpeg -L" in script
-    assert "$FfmpegEncoders = & $Ffmpeg -hide_banner -encoders" in script
+        assert token in helper
+
+
+def _run_powershell_script(executable, script_path, args, env):
+    return subprocess.run(
+        [executable, "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(script_path), *map(str, args)],
+        text=True,
+        capture_output=True,
+        timeout=60,
+        env=env,
+        check=False,
+    )
+
+
+def test_windows_ffmpeg_bootstrap_copies_audited_outputs_and_restores_environment(tmp_path):
+    if os.name != "nt":
+        pytest.skip("Native PowerShell filesystem behavior is tested on Windows.")
+    executable = shutil.which("pwsh") or shutil.which("powershell")
+    if not executable:
+        pytest.skip("PowerShell is not installed on this Windows runner.")
+
+    root = tmp_path / "project"
+    audit_output = root / "artifacts" / "ffmpeg-candidate-audit"
+    licenses = root / "LICENSES"
+    audit_output.mkdir(parents=True)
+    licenses.mkdir(parents=True)
+    bootstrap = Path(__file__).resolve().parents[1] / "tools" / "ensure_ffmpeg.ps1"
+    audit_script = tmp_path / "fake-audit.ps1"
+    audit_script.write_text(
+        r"""
+$ErrorActionPreference = 'Stop'
+$workspace = $env:GITHUB_WORKSPACE
+$output = Join-Path $workspace 'artifacts/ffmpeg-candidate-audit'
+$licenses = Join-Path $workspace 'LICENSES'
+New-Item -ItemType Directory -Force -Path $output | Out-Null
+New-Item -ItemType Directory -Force -Path (Join-Path $licenses 'FFMPEG_DEPENDENCY_NOTICES') | Out-Null
+[System.IO.File]::WriteAllText((Join-Path $output 'ffmpeg.exe'), 'test-executable')
+[System.IO.File]::WriteAllText((Join-Path $output 'FFMPEG_BUILD_MANIFEST.json'), '{"test":true}')
+[System.IO.File]::WriteAllText((Join-Path $licenses 'FFMPEG_LICENSE.txt'), 'test-license')
+[System.IO.File]::WriteAllText((Join-Path $licenses 'FFMPEG_DEPENDENCY_NOTICES/MANIFEST.json'), '{"files":[]}')
+""".strip(),
+        encoding="utf-8",
+    )
+    wrapper = tmp_path / "invoke-bootstrap.ps1"
+    state_path = tmp_path / "environment.json"
+    wrapper.write_text(
+        r"""
+param([string]$Bootstrap, [string]$Root, [string]$AuditScript, [string]$StatePath)
+$ErrorActionPreference = 'Stop'
+& $Bootstrap -Root $Root -AuditScript $AuditScript
+if (-not $?) { throw 'Bootstrap helper did not complete.' }
+@{
+    workspace = [Environment]::GetEnvironmentVariable('GITHUB_WORKSPACE', 'Process')
+    runner_temp = [Environment]::GetEnvironmentVariable('RUNNER_TEMP', 'Process')
+} | ConvertTo-Json | Set-Content -LiteralPath $StatePath -Encoding UTF8
+""".strip(),
+        encoding="utf-8",
+    )
+    env = os.environ.copy()
+    env["GITHUB_WORKSPACE"] = "original-workspace"
+    env["RUNNER_TEMP"] = "original-runner-temp"
+    result = _run_powershell_script(executable, wrapper, [bootstrap, root, audit_script, state_path], env)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert (root / "ffmpeg.exe").read_text(encoding="utf-8") == "test-executable"
+    assert (licenses / "FFMPEG_BUILD_MANIFEST.json").read_text(encoding="utf-8") == '{"test":true}'
+    assert (licenses / "FFMPEG_LICENSE.txt").read_text(encoding="utf-8") == "test-license"
+    state = json.loads(state_path.read_text(encoding="utf-8-sig"))
+    assert state == {"workspace": "original-workspace", "runner_temp": "original-runner-temp"}
+
+
+def test_windows_ffmpeg_bootstrap_skips_when_all_inputs_already_exist(tmp_path):
+    if os.name != "nt":
+        pytest.skip("Native PowerShell filesystem behavior is tested on Windows.")
+    executable = shutil.which("pwsh") or shutil.which("powershell")
+    if not executable:
+        pytest.skip("PowerShell is not installed on this Windows runner.")
+
+    root = tmp_path / "project"
+    licenses = root / "LICENSES"
+    notices = licenses / "FFMPEG_DEPENDENCY_NOTICES"
+    notices.mkdir(parents=True)
+    (root / "ffmpeg.exe").write_text("existing-executable", encoding="utf-8")
+    (licenses / "FFMPEG_BUILD_MANIFEST.json").write_text("{}", encoding="utf-8")
+    (licenses / "FFMPEG_LICENSE.txt").write_text("license", encoding="utf-8")
+    (notices / "MANIFEST.json").write_text('{"files":[]}', encoding="utf-8")
+    bootstrap = Path(__file__).resolve().parents[1] / "tools" / "ensure_ffmpeg.ps1"
+    audit_script = tmp_path / "should-not-run.ps1"
+    marker = tmp_path / "audit-ran.txt"
+    audit_script.write_text(
+        '[System.IO.File]::WriteAllText(' + "'" + str(marker) + "'" + ', "called")',
+        encoding="utf-8",
+    )
+    result = subprocess.run(
+        [executable, "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(bootstrap),
+         "-Root", str(root), "-AuditScript", str(audit_script)],
+        text=True,
+        capture_output=True,
+        timeout=60,
+        env=os.environ.copy(),
+        check=False,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert (root / "ffmpeg.exe").read_text(encoding="utf-8") == "existing-executable"
+    assert not marker.exists()
