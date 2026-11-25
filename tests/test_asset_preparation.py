@@ -732,3 +732,20 @@ def test_ffmpeg_build_manifest_template_matches_the_technically_audited_candidat
     assert manifest["binary_sha256"] == "3209f0ba6096189de3f850f65488bdb535177b7e46e0b16e902b3230c5ff74fe"
     assert manifest["license_sha256"] == "da7eabb7bafdf7d3ae5e9f223aa5bdc1eece45ac569dc21b3b037520b4464768"
     assert manifest["archive_sha256"] == "78d1f7728fef503b50a6de5866950a96d7e4db0fdb9dfaa47fc2c6691a48370b"
+
+
+
+def test_real_qwen_smoke_workflow_has_valid_step_scoped_cache_and_offline_environment():
+    root = Path(__file__).resolve().parents[1]
+    workflow = (root / ".github" / "workflows" / "qwen-real-inference.yml").read_text(encoding="utf-8")
+    job = workflow.split("  real-qwen-cpu:", 1)[1]
+    assert "    env:\n      HF_HOME: ${{ runner.temp }}" not in job
+    assert job.count("HF_HOME: ${{ runner.temp }}/huggingface") == 3
+    assert job.count("HF_HUB_OFFLINE: \"1\"") == 1
+    assert job.count("TRANSFORMERS_OFFLINE: \"1\"") == 1
+    assert job.count("HF_DATASETS_OFFLINE: \"1\"") == 1
+    download_step = job.split("- name: Download exact pinned Qwen VoiceDesign and Base snapshots", 1)[1].split("- name: Run real VoiceDesign", 1)[0]
+    assert "HF_HUB_OFFLINE" not in download_step
+    inference_step = job.split("- name: Run real VoiceDesign", 1)[1].split("- name: Upload genuine Qwen audio", 1)[0]
+    assert 'HF_HUB_OFFLINE: "1"' in inference_step
+    assert 'TRANSFORMERS_OFFLINE: "1"' in inference_step

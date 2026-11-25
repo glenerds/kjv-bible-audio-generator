@@ -15,14 +15,6 @@ jobs:
     name: Download pinned snapshots and synthesize real speech
     runs-on: ubuntu-24.04
     timeout-minutes: 90
-    env:
-      HF_HOME: ${{ runner.temp }}/huggingface
-      HF_HUB_CACHE: ${{ runner.temp }}/huggingface/hub
-      HF_HUB_DISABLE_TELEMETRY: "1"
-      HF_HUB_ENABLE_HF_TRANSFER: "0"
-      OMP_NUM_THREADS: "4"
-      MKL_NUM_THREADS: "4"
-      TOKENIZERS_PARALLELISM: "false"
     steps:
       - name: Check out source
         uses: actions/checkout@v7
@@ -34,6 +26,13 @@ jobs:
           cache: pip
 
       - name: Install CPU PyTorch and the pinned Qwen runtime
+        env:
+          HF_HOME: ${{ runner.temp }}/huggingface
+          HF_HUB_DISABLE_TELEMETRY: "1"
+          HF_HUB_ENABLE_HF_TRANSFER: "0"
+          OMP_NUM_THREADS: "4"
+          MKL_NUM_THREADS: "4"
+          TOKENIZERS_PARALLELISM: "false"
         run: |
           python -m pip install --upgrade pip
           python -m pip install torch==2.10.0 torchaudio==2.10.0 --index-url https://download.pytorch.org/whl/cpu
@@ -49,6 +48,13 @@ jobs:
 
       - name: Download exact pinned Qwen VoiceDesign and Base snapshots
         shell: bash
+        env:
+          HF_HOME: ${{ runner.temp }}/huggingface
+          HF_HUB_DISABLE_TELEMETRY: "1"
+          HF_HUB_ENABLE_HF_TRANSFER: "0"
+          OMP_NUM_THREADS: "4"
+          MKL_NUM_THREADS: "4"
+          TOKENIZERS_PARALLELISM: "false"
         run: |
           set -euo pipefail
           mkdir -p models artifacts/qwen-real-inference
@@ -69,6 +75,12 @@ jobs:
 
       - name: Run real VoiceDesign and Base synthesis with the network disabled
         env:
+          HF_HOME: ${{ runner.temp }}/huggingface
+          HF_HUB_DISABLE_TELEMETRY: "1"
+          HF_HUB_ENABLE_HF_TRANSFER: "0"
+          OMP_NUM_THREADS: "4"
+          MKL_NUM_THREADS: "4"
+          TOKENIZERS_PARALLELISM: "false"
           HF_HUB_OFFLINE: "1"
           TRANSFORMERS_OFFLINE: "1"
           HF_DATASETS_OFFLINE: "1"
