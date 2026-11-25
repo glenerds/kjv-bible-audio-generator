@@ -180,7 +180,7 @@ Invoke-WebRequest -Uri $CudnnEulaUri -OutFile $CudnnEulaPath -UseBasicParsing
 Invoke-WebRequest -Uri $CudnnAcknowledgementsUri -OutFile $CudnnAcknowledgementsPath -UseBasicParsing
 $CudnnEulaText = Get-Content -Raw -LiteralPath $CudnnEulaPath
 $CudnnAcknowledgementsText = Get-Content -Raw -LiteralPath $CudnnAcknowledgementsPath
-foreach ($RequiredTerm in @('LICENSE AGREEMENT FOR NVIDIA SOFTWARE DEVELOPMENT KITS','cuDNN SUPPLEMENT TO SOFTWARE LICENSE AGREEMENT','runtime files .so and .dll')) {
+foreach ($RequiredTerm in @('LICENSE AGREEMENT FOR NVIDIA SOFTWARE DEVELOPMENT KITS','cuDNN SUPPLEMENT TO SOFTWARE LICENSE AGREEMENT','runtime files','.so','.dll')) {
     if ($CudnnEulaText -notmatch [regex]::Escape($RequiredTerm)) {
         throw "Downloaded cuDNN EULA is missing a required version/redistribution clause: $RequiredTerm"
     }
