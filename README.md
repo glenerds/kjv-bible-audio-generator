@@ -1,3 +1,47 @@
+# Continuation update — 2026-11-25 (first genuine Qwen CPU speech passed; Genesis 1 harness added)
+
+This is the newest recovery note. Earlier checkpoints are retained below.
+
+## Current source state
+- Public repository: https://github.com/glenerds/kjv-bible-audio-generator
+- Prototype version: **0.4.12**.
+- Current branch head at this checkpoint: `0437e4c73c36ab1f876c6b791701548cdb975ded`.
+- Added `tools/qwen_genesis1_real.py` to exercise the production `ChapterWorker + QwenVoiceBackend + ChapterAudioAssembler` path on all 31 Genesis 1 verses, 33 expected speech segments, two manual God-speech splits, MP3 decoding and full cue-text preservation.
+- This Genesis 1 real-model harness is committed and has a static regression test, but **has not yet run against the real downloaded models**.
+
+## Genuine Qwen CPU inference — passed
+- Workflow: https://github.com/glenerds/kjv-bible-audio-generator/actions/runs/45635718244
+- Source commit tested: `de4cde4b26a2718a580b45ad858f5afde25bfb6b`.
+- Both immutable Qwen3-TTS-12Hz-1.7B snapshots downloaded and passed full-file SHA-256:
+  - VoiceDesign revision `5ecdb67327fd37bb2e042aab12ff7391903235d3`; main `model.safetensors` SHA-256 `391e8db219f292c515297cdceeb43e4eae67cdde35fa57e79a6a8a532fca0522`.
+  - Base revision `fd4b254389122332181a7c3db7f27e918eec64e3`; main `model.safetensors` SHA-256 `38fc7fc51c5e776e840414b6fd443962e9411b9654888fd7913e4da643cb857c`.
+  - Both speech-tokenizer files SHA-256 `836b7b357f5ea43e889936a3709af68dfe3751881acefe4ecf0dbd30ba571258`.
+- Offline inference then ran using the production `QwenVoiceBackend`: VoiceDesign reference creation, Base clone-prompt creation, and Base synthesis all completed. Hugging Face/Transformers offline mode was enabled for inference.
+- Genuine speech output: 24 kHz WAV, **3.12 seconds**, 149,804 bytes; measured real-time factor **4.208** on the GitHub CPU runner; peak process RSS **5,095.1 MiB**. Audio passed nonempty/finite/non-silent checks and WAV round-trip validation.
+- Artifact `qwen-real-cpu-inference-smoke`, ID `15033491559`, includes the actual synthesized WAV, VoiceDesign reference WAV, prompt tensor/metadata, hash report and metrics. Independently downloaded and inspected; the reported metrics and checkpoint hashes matched.
+- This is a successful short CPU inference test, not subjective voice/listening QA, multi-verse generation, Windows performance, or proof that the user's PC will achieve the same speed.
+
+## Source CI baseline
+- On commit `de4cde4b26a2718a580b45ad858f5afde25bfb6b`, run `45635718643` passed:
+  - Windows 11 / Python 3.12: **141 passed**.
+  - Ubuntu 24.04 / Python 3.13: **137 passed, 4 skipped** (Windows-only NTFS/PowerShell tests).
+  - NTFS sparse-file precheck passed; all five PowerShell scripts parsed.
+- A newer source CI run for Genesis harness commit `0437e4c73c36ab1f876c6b791701548cdb975ded` is/was triggered as run `45638207016`; inspect its Windows and Ubuntu jobs before claiming that commit green.
+
+## Next engineering actions
+1. Confirm run `45638207016` on Windows and Ubuntu, and fix any real regression.
+2. Extend the existing real-Qwen workflow so it invokes `tools/qwen_genesis1_real.py` immediately after the already-passing short Qwen smoke, reusing the same downloaded and verified model snapshots on the same runner.
+3. Verify the generated full Genesis 1 MP3, all 33 speaker segments and verse timestamp cues, exact KJV text preservation, actual MP3 decode and non-silence. Save the MP3, cue JSON and metrics as a separate evidence artifact.
+4. After Genesis 1 passes, test recurring-speaker voice stability in a later chapter, real pause/stop/restart/recovery, then native Windows packaging, offline playback and USB relocation.
+5. Measure realistic CPU/RAM/VRAM and speed on target hardware, then progress toward all 1,189 chapter outputs and final storage measurement.
+
+## Release status
+**Developer prototype only — not ready for user/customer testing.** First genuine Qwen CPU inference is now confirmed. The full Genesis 1 Qwen-to-MP3 pipeline, human listening QA, recurring voice continuity, real-model recovery, packaged Windows app, offline playback, USB relocation, complete-book production, target-PC performance and final legal/source-obligation review remain open.
+
+The user requires a README update before each future "Continue working" request and an explicit pause statement when work stops.
+
+---
+
 # Continuation update — 2026-11-25 (cross-platform tests green; Qwen model download running)
 
 ## Latest verified source-test results
