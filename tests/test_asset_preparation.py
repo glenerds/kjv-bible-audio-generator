@@ -561,7 +561,7 @@ def test_pinned_windows_ffmpeg_audit_is_digest_locked_and_runs_real_acceptance_c
     for token in (
         "runs-on: windows-latest",
         "actions/upload-artifact@v4",
-        "./tools/run_ffmpeg_candidate_audit.ps1",
+        "./tools/ensure_ffmpeg.ps1 -Root $env:GITHUB_WORKSPACE",
     ):
         assert token in workflow
     assert chr(8) not in script
