@@ -1,3 +1,31 @@
+# Continuation update — 2026-11-25 (cross-platform tests green; Qwen model download running)
+
+## Latest verified source-test results
+- Source commit: `de4cde4b26a2718a580b45ad858f5afde25bfb6b`.
+- GitHub Actions run `45635718643` passed on both platforms:
+  - Windows 11 / Python 3.12: **141 passed** in 154.79 seconds.
+  - Ubuntu 24.04 / Python 3.13: **137 passed, 4 skipped** (Windows-only NTFS/PowerShell behavior).
+  - Windows NTFS sparse-file fixture check passed.
+  - All five PowerShell scripts parsed: Windows builder, Qwen asset preparation, FFmpeg notice importer, FFmpeg candidate audit, and FFmpeg bootstrap helper.
+- This covers the new bootstrap acquire/skip and environment cleanup tests, plus pinned FFmpeg template/provenance checks and the real-Qwen workflow structure checks. It is not a full packaged-app build.
+
+## Real Qwen CPU inference attempt
+- Workflow run: `45635718244`; job ID `139280475735`; commit `de4cde4b26a2718a580b45ad858f5afde25bfb6b`.
+- GitHub accepted the corrected workflow and allocated an Ubuntu 24.04 runner. Python 3.12 setup and pinned CPU PyTorch/Qwen runtime installation passed, and the resource-report step completed.
+- At the time of this update, the two pinned 1.7B snapshots are still being downloaded. The model integrity report and offline inference steps have **not** run yet. No real model SHA-256 verification or Qwen audio success is claimed.
+- The workflow downloads VoiceDesign revision `5ecdb67327fd37bb2e042aab12ff7391903235d3` and Base revision `fd4b254389122332181a7c3db7f27e918eec64e3`, verifies actual main-weight and speech-tokenizer hashes, then disables Hugging Face/Transformers network access before invoking the production `QwenVoiceBackend`.
+- The smoke script produces a WAV and timing/RAM metrics only if VoiceDesign reference creation, Base prompt generation and Base speech synthesis all succeed. It explicitly excludes the synthetic test backend.
+
+## Next steps
+1. Monitor run `45635718244` until the download step finishes; inspect the actual file-hash report before claiming models verified.
+2. Inspect offline inference logs and any produced WAV/metrics artifact. Fix real API/runtime/resource failures with evidence.
+3. Then extend the same pinned-model test to the full Genesis 1 pipeline using the actual chapter worker, two manual speaker segments, MP3 assembly and verse/segment cue checks.
+4. Re-run relevant CI and update this handoff with exact results.
+
+**Release status: developer prototype only.** No complete user app, genuine Qwen audio, listening QA, USB portability, full Bible production, system benchmark or final legal signoff has passed yet.
+
+---
+
 # Continuation handoff — 2026-11-25 (real Qwen CPU test workflow correction)
 
 This is the current recovery point for the next chat.
