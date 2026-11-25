@@ -294,7 +294,7 @@ If you return a patch or corrected archive, include:
 - **Development status:** https://github.com/glenerds/kjv-bible-audio-generator/blob/main/docs/DEVELOPMENT_STATUS.md
 - **0.4.10 checkpoint:** https://github.com/glenerds/kjv-bible-audio-generator/blob/main/docs/PROGRESS_CHECKPOINT_2026-11-24_GENERATOR_PROTOTYPE_0_4_10.md
 
-The supplied package contains the 0.4.10 source snapshot and project records. If your platform can browse GitHub, use the links to cross-check the project records. If the GitHub branch has since advanced beyond 0.4.10, do not silently mix versions: report the exact commit/hash/version you inspected and use the supplied 0.4.10 package as the fixed review baseline unless instructed otherwise.
+The public GitHub repository is the primary source for this review. Inspect its default branch directly and report the exact commit SHA and version you examined. Do not assume a ZIP archive was attached. If the repository has advanced beyond 0.4.10, clearly identify that difference and review the actual code at the inspected commit rather than silently mixing versions.
 
 ## Final instruction
 
