@@ -11,7 +11,7 @@ $ExecutableName = 'KJV Bible Audio Generator.exe'
 $Executable = Join-Path $DistRoot $ExecutableName
 $RunRoot = Join-Path $env:RUNNER_TEMP 'kjv-windows-package-acceptance'
 $EvidenceRoot = Join-Path $Root 'artifacts/windows-package-acceptance'
-$OfflineNames = @('HF_HUB_OFFLINE', 'TRANSFORMERS_OFFLINE', 'HF_DATASETS_OFFLINE')
+$OfflineNames = @('HF_HUB_OFFLINE', 'TRANSFORMERS_OFFLINE', 'HF_DATASETS_OFFLINE', 'KJV_APP_DIAGNOSTICS_FILE')
 $PreviousEnv = @{}
 foreach ($Name in $OfflineNames) {
     $PreviousEnv[$Name] = [Environment]::GetEnvironmentVariable($Name, 'Process')
@@ -46,13 +46,17 @@ try {
     }
 
     $SelfTestOutput = Join-Path $DistRoot 'portable-acceptance/self-test'
+    $SelfTestDiagnostics = Join-Path $EvidenceRoot 'self-test-entrypoint-diagnostics.json'
+    [Environment]::SetEnvironmentVariable('KJV_APP_DIAGNOSTICS_FILE', $SelfTestDiagnostics, 'Process')
     & $Executable --self-test --device cpu --output $SelfTestOutput
     if ($LASTEXITCODE -ne 0) {
         throw "Packaged --self-test failed with exit code $LASTEXITCODE."
     }
     $SelfTestReport = Join-Path $SelfTestOutput 'metadata/self_test_report.json'
     if (-not (Test-Path $SelfTestReport -PathType Leaf)) {
-        throw 'Packaged --self-test did not create its machine-readable report.'
+        $DiagnosticText = if (Test-Path $SelfTestDiagnostics -PathType Leaf) { Get-Content -Raw -LiteralPath $SelfTestDiagnostics } else { 'No entrypoint diagnostics were written.' }
+        throw "Packaged --self-test did not create its machine-readable report. Entrypoint diagnostics: $DiagnosticText"
+
     }
     $SelfTest = Get-Content -Raw -LiteralPath $SelfTestReport | ConvertFrom-Json
     if (-not $SelfTest.ok -or @($SelfTest.checks.PSObject.Properties | Where-Object { -not $_.Value }).Count -gt 0) {
@@ -61,6 +65,8 @@ try {
     Copy-Item -LiteralPath $SelfTestReport -Destination (Join-Path $EvidenceRoot 'self-test-report.json') -Force
 
     $AudioOutput = Join-Path $DistRoot 'portable-acceptance/audio-smoke'
+    $AudioDiagnostics = Join-Path $EvidenceRoot 'audio-smoke-entrypoint-diagnostics.json'
+    [Environment]::SetEnvironmentVariable('KJV_APP_DIAGNOSTICS_FILE', $AudioDiagnostics, 'Process')
     & $Executable --audio-smoke --device cpu --output $AudioOutput
     if ($LASTEXITCODE -ne 0) {
         throw "Packaged --audio-smoke failed with exit code $LASTEXITCODE."
@@ -110,6 +116,8 @@ try {
     $RelocatedDriveRoot = $DriveLetter + '\'
     $RelocatedExecutable = Join-Path $RelocatedDriveRoot $ExecutableName
     $RelocatedSelfOutput = Join-Path $RelocatedDriveRoot 'portable-acceptance-relocated/self-test'
+    $RelocatedSelfDiagnostics = Join-Path $EvidenceRoot 'relocated-self-test-entrypoint-diagnostics.json'
+    [Environment]::SetEnvironmentVariable('KJV_APP_DIAGNOSTICS_FILE', $RelocatedSelfDiagnostics, 'Process')
     & $RelocatedExecutable --self-test --device cpu --output $RelocatedSelfOutput
     if ($LASTEXITCODE -ne 0) {
         throw "Relocated packaged --self-test failed with exit code $LASTEXITCODE."
@@ -122,6 +130,8 @@ try {
     if (-not $RelocatedSelf.ok) { throw 'Relocated package self-test reported a failed check.' }
 
     $RelocatedAudioOutput = Join-Path $RelocatedDriveRoot 'portable-acceptance-relocated/audio-smoke'
+    $RelocatedAudioDiagnostics = Join-Path $EvidenceRoot 'relocated-audio-smoke-entrypoint-diagnostics.json'
+    [Environment]::SetEnvironmentVariable('KJV_APP_DIAGNOSTICS_FILE', $RelocatedAudioDiagnostics, 'Process')
     & $RelocatedExecutable --audio-smoke --device cpu --output $RelocatedAudioOutput
     if ($LASTEXITCODE -ne 0) {
         throw "Relocated packaged --audio-smoke failed with exit code $LASTEXITCODE."
@@ -140,6 +150,12 @@ try {
     Copy-Item -LiteralPath $RelocatedSelfReport -Destination (Join-Path $EvidenceRoot 'relocated-self-test-report.json') -Force
     Copy-Item -LiteralPath $RelocatedAudioReport -Destination (Join-Path $EvidenceRoot 'relocated-audio-smoke-report.json') -Force
     Copy-Item -LiteralPath $RelocatedMp3 -Destination (Join-Path $EvidenceRoot 'relocated-qwen-smoke.mp3') -Force
+    foreach ($Diagnostic in @($SelfTestDiagnostics, $AudioDiagnostics, $RelocatedSelfDiagnostics, $RelocatedAudioDiagnostics)) {
+        if (Test-Path $Diagnostic -PathType Leaf) {
+            $DiagnosticName = [System.IO.Path]::GetFileName($Diagnostic)
+            Copy-Item -LiteralPath $Diagnostic -Destination (Join-Path $EvidenceRoot $DiagnosticName) -Force
+        }
+    }
 
     $Summary = @{
         status = 'passed'

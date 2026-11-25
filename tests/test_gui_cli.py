@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pathlib import Path
 import os
 import subprocess
 import sys
@@ -696,6 +697,8 @@ def test_native_windows_package_acceptance_builds_runs_and_relocates_the_frozen_
         "subst $DriveLetter $RelocatedRoot",
         "relocated-self-test-report.json",
         "relocated-audio-smoke-report.json",
+        "KJV_APP_DIAGNOSTICS_FILE",
+        "self-test-entrypoint-diagnostics.json",
     ):
         assert token in script
 
@@ -710,3 +713,21 @@ def test_windows_package_acceptance_downloads_assets_before_forcing_offline_mode
     assert build_at < offline_at < self_test_at
     assert "subst {0}" in script
     assert "subst $DriveLetter /D" in script
+
+
+
+def test_frozen_entrypoint_writes_opt_in_diagnostics_even_when_console_streams_are_missing():
+    root = Path(__file__).resolve().parents[1]
+    entrypoint = (root / "tools" / "entrypoint.py").read_text(encoding="utf-8")
+    for token in (
+        "KJV_APP_DIAGNOSTICS_FILE",
+        "sys.argv",
+        "sys.executable",
+        "sys.stdout is None",
+        "sys.stderr is None",
+        '_record_entrypoint_diagnostics("started")',
+        '_record_entrypoint_diagnostics("exception"',
+        '_record_entrypoint_diagnostics("completed"',
+        "os.replace(temporary, destination)",
+    ):
+        assert token in entrypoint
