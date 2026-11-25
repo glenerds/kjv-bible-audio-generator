@@ -52,11 +52,26 @@ jobs:
         shell: pwsh
         run: ./tools/windows_package_acceptance.ps1 -TorchVariant cu128
 
-      - name: Upload compact Windows package acceptance evidence
+      - name: Verify complete spoken text from final packaged MP3s with pinned Whisper
         if: success()
+        env:
+          HF_HOME: ${{ runner.temp }}/whisper-model-cache
+          HF_HUB_DISABLE_TELEMETRY: "1"
+          HF_HUB_ENABLE_HF_TRANSFER: "0"
+          OMP_NUM_THREADS: "4"
+        run: |
+          python tools/verify_smoke_transcript.py \
+            --audio artifacts/windows-package-acceptance/packaged-qwen-smoke-decoded.wav \
+            --audio artifacts/windows-package-acceptance/relocated-qwen-smoke-decoded.wav \
+            --expected-text "This is a test of the King James Bible narrator voice." \
+            --report artifacts/windows-package-acceptance/speech-transcript-verification.json \
+            --acceptance-summary artifacts/windows-package-acceptance/acceptance-summary.json
+
+      - name: Upload compact Windows package acceptance evidence
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: windows-portable-package-acceptance
           path: artifacts/windows-package-acceptance/**
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 14
