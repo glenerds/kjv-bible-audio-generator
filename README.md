@@ -1,3 +1,50 @@
+# Continuation handoff — 2026-11-25 (0.4.12: Windows validation and Qwen integrity)
+
+This is the current recovery point. The preceding handoff below is preserved as history.
+
+## Current verified state
+- Public source repository: https://github.com/glenerds/kjv-bible-audio-generator
+- Version being prepared: **0.4.12** (adds fixed SHA-256 verification for the pinned Qwen model weights).
+- Source/test commit just validated: `2785eee6d64afd634cfd9ac4991a8f53a3e7a2b9`.
+- GitHub Actions run `45621233336` completed successfully on that commit:
+  - Windows 11 / Python 3.12: **135 passed** in 136.33 seconds.
+  - Ubuntu / Python 3.13: **133 passed, 2 skipped** (the skips are Windows-only NTFS tests).
+  - Windows NTFS sparse-fixture diagnostic passed before the suite.
+  - All three PowerShell build/preparation/import scripts parsed successfully.
+- The isolated new Qwen-integrity test module passed **7/7** locally; Python compileall passed.
+- Previous Windows defect is resolved: the FFmpeg notice importer rejects NTFS alternate data streams in notice files and license files. The new run confirms the corrected assertion and implementation pass together on Windows.
+
+## New Qwen weight-integrity hardening
+- Added `tools/qwen_asset_integrity.py`, a standard-library-only verifier. It streams files in 8 MiB chunks and checks actual file SHA-256 values, not file sizes alone or Xet chunk IDs.
+- The two model revisions are pinned:
+  - VoiceDesign: `5ecdb67327fd37bb2e042aab12ff7391903235d3`; main weight SHA-256 `391e8db219f292c515297cdceeb43e4eae67cdde35fa57e79a6a8a532fca0522`.
+  - Base: `fd4b254389122332181a7c3db7f27e918eec64e3`; main weight SHA-256 `38fc7fc51c5e776e840414b6fd443962e9411b9654888fd7913e4da643cb857c`.
+  - Both pinned snapshots' `speech_tokenizer/model.safetensors` SHA-256 is `836b7b357f5ea43e889936a3709af68dfe3751881acefe4ecf0dbd30ba571258`.
+- `prepare_assets.ps1` now verifies the large files after download and records their SHA-256 values and byte sizes in `KJV_QWEN_ASSET_MANIFEST.json`.
+- `build_windows.ps1` independently re-hashes the files and checks the manifest before packaging.
+- Added seven isolated tests for published pins, streaming hash, incomplete/altered files, manifest consistency, duplicate/unexpected model entries.
+- These published hashes were verified against the pinned Hugging Face file pages. The actual multi-gigabyte model files have **not** been downloaded or hashed in this runtime yet; do not claim local checkpoint verification.
+
+## FFmpeg candidate refreshed — not binary-approved
+The BtbN/FFmpeg-Builds `latest` release was updated again on 2026-11-25. Its Windows x64 static LGPL archive is currently reported as 179,056,458 bytes with SHA-256 `78d1f7728fef503b50a6de5866950a96d7e4db0fdb9dfaa47fc2c6691a48370b`. Release source tag resolves to commit `b9ebe81995b58cd4e3177a6c0ad5dc2392f7f7fd`.
+This replaces the prior 2026-11-24 archive digest. The executable inside this new archive, its actual `-version`/`-L` output, build configuration, MP3 encoder, notices and WAV→MP3→decode behavior still need a native Windows audit. The `latest` URL is mutable; the fixed archive hash must match before use.
+
+## Next engineering actions
+1. Complete the one-time audit of the exact 2026-11-25 Windows LGPL archive. Verify its hash, extract the exact package, inspect `ffmpeg.exe -version`, `-L`, configuration and `libmp3lame`, import and hash all notices, and run an actual WAV→MP3→decode probe. Keep the candidate unapproved until the full check succeeds and the license/source obligations are reviewed.
+2. Rerun Windows/Ubuntu CI for the 0.4.12 version/documentation commit.
+3. Obtain the exact pinned model snapshots in a suitable machine, run the new integrity verifier over the actual downloaded files, then verify offline Qwen VoiceDesign and Base model loading.
+4. Generate and listen to a real Genesis 1 chapter (all verses/cues) and check recurring speaker identity in a later chapter.
+5. Test real-model pause/stop/retry/restart/crash recovery and full sequential operation.
+6. Build the Windows one-folder package, then verify first launch, fully offline playback, drive-letter/USB relocation and clean-machine dependency isolation.
+7. Measure CPU/RAM/VRAM and generation speed; generate all 1,189 MP3 chapter files and measure final storage; finish KJV-specific attribution and software/model/codec/data license review.
+
+## Release status
+**Developer prototype only — not ready for user/customer testing.** Passing source suites are not packaged-app acceptance. No genuine Qwen inference or listening QA, real model download validation, finished Windows app, offline install/playback, USB relocation, full-book run or performance benchmark has passed. Synthetic audio remains synthetic.
+
+The user requires a README checkpoint update before each future "Continue working" / "keep working" request and an explicit pause message whenever work stops. Preserve this recovery note on every handoff.
+
+---
+
 # Continuation handoff — 2026-11-25 (Windows hardening and CI follow-up)
 
 This entry is written before the next engineering pass so another chat can resume from an explicit checkpoint.

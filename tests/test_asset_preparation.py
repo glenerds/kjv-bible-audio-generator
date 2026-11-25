@@ -108,8 +108,8 @@ def test_project_version_is_consistent():
     root = Path(__file__).resolve().parents[1]
     pyproject = (root / "pyproject.toml").read_text(encoding="utf-8")
     package_init = (root / "src" / "kjv_audio_generator" / "__init__.py").read_text(encoding="utf-8")
-    assert 'version = "0.4.11"' in pyproject
-    assert '__version__ = "0.4.11"' in package_init
+    assert 'version = "0.4.12"' in pyproject
+    assert '__version__ = "0.4.12"' in package_init
 
 
 def test_hf_download_cli_version_stays_compatible_with_pinned_transformers():

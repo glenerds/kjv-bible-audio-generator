@@ -1,3 +1,32 @@
+## 0.4.12 hardening checkpoint — 2026-11-25
+
+### Verified source and CI
+- Source/test commit `2785eee6d64afd634cfd9ac4991a8f53a3e7a2b9`, GitHub Actions run `45621233336`: success.
+- Native Windows 11 / Python 3.12: **135 passed**; NTFS sparse fixture check passed; all three PowerShell scripts parsed.
+- Ubuntu / Python 3.13: **133 passed, 2 Windows-only skips**.
+- New isolated model-integrity tests: **7 passed**; Python compileall passed.
+
+### Pinned Qwen weight hashes
+Added `tools/qwen_asset_integrity.py` to stream each multi-gigabyte safetensors file in 8 MiB chunks and compare actual SHA-256 values against fixed publisher values:
+- VoiceDesign `model.safetensors`: `391e8db219f292c515297cdceeb43e4eae67cdde35fa57e79a6a8a532fca0522`.
+- Base `model.safetensors`: `38fc7fc51c5e776e840414b6fd443962e9411b9654888fd7913e4da643cb857c`.
+- Both speech-tokenizer files: `836b7b357f5ea43e889936a3709af68dfe3751881acefe4ecf0dbd30ba571258`.
+- `prepare_assets.ps1` performs the check and writes hash/size fields to the asset manifest.
+- `build_windows.ps1` independently re-verifies the actual weights and manifest before packaging.
+- Unit tests cover streaming, correct records, missing/altered files, manifest mismatch, duplicate entries and unexpected models.
+
+The hashes are confirmed against the pinned Hugging Face file pages, but the large model files have not yet been downloaded and checked in a machine/runtime. The code path is tested using small test fixtures only.
+
+### Windows FFmpeg candidate update
+The `latest` Windows x64 static LGPL release was refreshed on 2026-11-25. Current release asset metadata: 179,056,458 bytes; SHA-256 `78d1f7728fef503b50a6de5866950a96d7e4db0fdb9dfaa47fc2c6691a48370b`; source commit `b9ebe81995b58cd4e3177a6c0ad5dc2392f7f7fd`. Candidate remains **not binary-verified/not approved** until exact binary, license/configuration, encoder, notices and encode/decode checks pass.
+
+### Remaining release gates
+Genuine offline Qwen VoiceDesign/Base inference; actual model file hash pass; complete Genesis 1 MP3 and listening review; recurring voice continuity; real-model recovery and long run; verified Windows LGPL FFmpeg and source/license obligations; Windows packaged build/offline launch/playback/USB relocation; CPU/RAM/VRAM benchmarks; all 1,189 chapters and storage; KJV dialogue attribution and software/model/codec/data license review.
+
+**Not ready for customer installation/testing.**
+
+---
+
 ## ADS validation test wording follow-up — 2026-11-24
 
 Adjusted the pre-existing Windows unsafe-path test to recognize the new specific "alternate data streams" rejection message. The Windows-only license ADS test continues asserting that exact text. This is a regression-test expectation change only. Local suite: 126 passed, 2 Windows-only skipped; hosted Windows verification pending.

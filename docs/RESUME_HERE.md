@@ -1,3 +1,25 @@
+## Latest continuation — 2026-11-25: 0.4.12 model hash hardening
+
+- Validated source/test commit `2785eee6d64afd634cfd9ac4991a8f53a3e7a2b9`, GitHub run `45621233336`: Windows 11/Python 3.12 **135 passed**; Ubuntu/Python 3.13 **133 passed, 2 Windows-only skips**; all three PowerShell scripts parsed; NTFS sparse fixture check passed.
+- Added `tools/qwen_asset_integrity.py`: checks pinned VoiceDesign/Base main safetensors and speech-tokenizer weights using 8 MiB streaming SHA-256.
+- `prepare_assets.ps1` records trusted model file hashes and byte lengths in the manifest; `build_windows.ps1` independently re-hashes and checks manifest before packaging.
+- Added seven tests; local isolated run **7 passed**. The new helper does not allocate multi-gigabyte buffers.
+- Published pinned SHA-256 values were confirmed on exact Hugging Face file pages, but actual model files have not been downloaded/hashed in this environment. Do not claim real Qwen inference.
+- Current FFmpeg Windows x64 static LGPL candidate changed again with the 2026-11-25 release. Current archive SHA-256 `78d1f7728fef503b50a6de5866950a96d7e4db0fdb9dfaa47fc2c6691a48370b`, 179,056,458 bytes; source commit `b9ebe81995b58cd4e3177a6c0ad5dc2392f7f7fd`. Still not internally audited.
+
+### Next
+1. Native Windows audit of the exact FFmpeg archive and binary/encoder/license/notice/MP3 encode-decode requirements.
+2. Re-run CI for the version/documentation commit.
+3. Obtain the pinned Qwen model files in a suitable runtime and verify actual file hashes and offline VoiceDesign/Base inference.
+4. Run real Genesis 1 audio and later-chapter recurring-voice listening checks.
+5. Exercise real-model stop/pause/retry/restart/recovery, then packaged Windows launch, offline playback and USB relocation.
+6. Measure real CPU/RAM/VRAM speed and long-run memory; generate all 1,189 chapter outputs and measure final storage.
+7. Finish KJV-specific cast attribution and software/model/codec/data license review.
+
+**Not customer-ready.** Source CI success is not proof of packaged app functionality or genuine Qwen audio.
+
+---
+
 ## ADS validation test wording follow-up
 
 Expanded the existing unsafe-source-name test to accept the new precise diagnostic text "alternate data streams" as well as the prior unsafe/reserved messages. This prevents a correct Windows ADS rejection being marked failed merely because its error is more specific. No product behavior change; local compileall and Linux suite remain 126 passed, 2 Windows-only skipped. Hosted Windows run pending.
