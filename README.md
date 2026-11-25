@@ -1,3 +1,32 @@
+# Continuation checkpoint — 2026-11-25 (packaged smoke speech completeness issue found)
+
+This is the newest recovery note and supersedes earlier statements that the Windows audio smoke fully passed.
+
+## Newly reported listening failure
+- The user listened to the packaged Windows Qwen smoke MP3 and reports that it said: **“This is a test of the King James Bi…”** and stopped before completing “Bible narrator voice.”
+- The previously inspected MP3 metadata was 3.792 seconds, mono, 48 kHz, approximately 96.7 kbps, and FFmpeg decoded it successfully. That proves the file is structurally valid, not that the full requested sentence was spoken.
+- Source review of `src/kjv_audio_generator/__main__.py` confirms the current `--audio-smoke` gate only checks non-empty returned samples, the 24 kHz Qwen sample rate indirectly through the acceptance report, output MP3/cue existence, and successful FFmpeg decode. It does **not** check that the entire input sentence was synthesized, does not enforce a minimum expected duration, and does not verify the spoken transcript.
+- The Windows package acceptance script currently treats this limited smoke as passed if the report says `ok`, sample count is positive, sample rate is 24 kHz, and the MP3 decodes. That gate is too weak for speech completeness.
+- Therefore, the earlier “real Qwen audio smoke passed” claim is valid only in the narrow technical sense that Qwen returned non-empty audio and it encoded/decoded. **Speech-content completeness and listening QA are not passed.** Do not mark the portable app ready.
+
+## Immediate engineering task
+1. Add a targeted regression test and strengthen `--audio-smoke` so the expected sentence is recorded in the report and generated audio must meet a conservative duration/quality floor relative to text length. A duration floor can reject obvious early termination but cannot prove words were spoken; clearly label this limitation.
+2. Investigate the pinned Qwen 0.1.1 generation call and generation defaults for early stopping/truncation. Do not blindly append audio or alter normal chapter generation until a real cause is demonstrated.
+3. Run the focused tests, full cross-platform source suites and native Windows package acceptance again. Inspect the new audio report, MP3 duration and cue text; replay the artifact and verify the ending is present.
+4. If duration validation passes but listening still truncates, add an independent speech-recognition/content check to the test environment (not the customer's runtime) or another reliable completion check before claiming the speech gate passes.
+5. Preserve the user's report as an unresolved listening defect until the revised smoke actually passes.
+
+## Current source facts inspected
+- `tools/qwen_real_smoke.py` separately generates the exact text “In the beginning God created the heaven and the earth.” and currently validates only broad duration limits (0.5–60 seconds), waveform non-silence and file round-trip. It does not compare recognized words.
+- The production backend calls Qwen's `generate_voice_clone(..., non_streaming_mode=True)`; no explicit max-token/max-duration limit is passed at this adapter call. Inspect the pinned Qwen wrapper's defaults before changing it.
+- Full Genesis chapter generation remains a separate pipeline and must not be conflated with the short package smoke.
+- No new passing result is claimed for the speech-completeness fix yet.
+
+## Release status
+**Developer prototype only; not ready for customer testing.** Keep GPU benchmarks on the target RTX PC, real long-run recovery, physical USB operation, complete 1,189-chapter generation, subjective listening approval, speaker attribution review and license review open as before.
+
+---
+
 # Continuation checkpoint — 2026-11-25 (source suites green; portable payload measurement underway)
 
 This is the newest recovery note.
