@@ -157,6 +157,17 @@ if ((Get-GitBlobSha1 $QwenLicensePath) -ne 'c347eb5ec781d2702623e8e2b5923fa1a766
     throw 'Qwen Apache-2.0 license notice checksum does not match the pinned upstream source.'
 }
 
+# tokenizers 0.22.2 is present in the packaged Transformers runtime. Its wheel
+# did not expose a license file in the frozen .dist-info payload, so preserve
+# the exact Apache-2.0 license from the dependency's immutable source commit.
+$TokenizerLicenseCommit = 'f383101a26663708484cac0727792aad74f78234'
+$TokenizerLicensePath = Join-Path $LicenseDir 'TOKENIZERS_APACHE_2.0.txt'
+$TokenizerLicenseUri = "https://raw.githubusercontent.com/huggingface/tokenizers/$TokenizerLicenseCommit/LICENSE"
+Invoke-WebRequest -Uri $TokenizerLicenseUri -OutFile $TokenizerLicensePath -UseBasicParsing
+if ((Get-GitBlobSha1 $TokenizerLicensePath) -ne '261eeb9e9f8b2b4b0d119366dda99c6fd7d35c64') {
+    throw 'tokenizers Apache-2.0 license notice checksum does not match the pinned upstream source.'
+}
+
 $ManifestModels = @()
 foreach ($Model in $ModelSources) {
     $Destination = Join-Path $Models $Model.Folder
