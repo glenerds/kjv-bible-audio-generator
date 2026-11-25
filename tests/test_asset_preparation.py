@@ -831,16 +831,18 @@ def test_windows_builder_fails_closed_without_pinned_tokenizers_license_notice()
     )
     assert "'TOKENIZERS_APACHE_2.0.txt'" in required_list
 
-def test_cudnn_97_eula_and_acknowledgements_are_pinned_and_required_for_windows_package():
+def test_cudnn_9102_eula_and_acknowledgements_are_pinned_and_required_for_windows_package():
     root = Path(__file__).resolve().parents[1]
     prepare = (root / "tools" / "prepare_assets.ps1").read_text(encoding="utf-8")
     builder = (root / "tools" / "build_windows.ps1").read_text(encoding="utf-8")
 
     for token in (
-        "$CudnnVersion = '9.7.0'",
-        "cudnn-windows-x86_64-9.7.0.66_cuda12-archive.zip",
-        "https://docs.nvidia.com/deeplearning/cudnn/backend/v$CudnnVersion/reference/eula.html",
-        "https://docs.nvidia.com/deeplearning/cudnn/backend/v$CudnnVersion/reference/acknowledgements.html",
+        "$CudnnVersion = '9.10.2.21'",
+        "$CudnnDocsVersion = '9.10.2'",
+        "cudnn-windows-x86_64-9.10.2.21_cuda12-archive.zip",
+        "https://docs.nvidia.com/deeplearning/cudnn/backend/v$CudnnDocsVersion/reference/eula.html",
+        "https://docs.nvidia.com/deeplearning/cudnn/backend/v$CudnnDocsVersion/reference/acknowledgements.html",
+        "https://github.com/pytorch/pytorch/blob/v2.10.0/RELEASE.md",
         "CUDNN_",
         "EULA.html",
         "ACKNOWLEDGEMENTS.html",
@@ -858,6 +860,19 @@ def test_cudnn_97_eula_and_acknowledgements_are_pinned_and_required_for_windows_
         line for line in builder.splitlines()
         if "foreach ($LicenseFile in @" in line
     )
-    assert "'CUDNN_9.7.0_EULA.html'" in required_list
-    assert "'CUDNN_9.7.0_ACKNOWLEDGEMENTS.html'" in required_list
+    assert "'CUDNN_9.10.2.21_EULA.html'" in required_list
+    assert "'CUDNN_9.10.2.21_ACKNOWLEDGEMENTS.html'" in required_list
     assert "'NVIDIA_CUDNN_NOTICE_MANIFEST.json'" in required_list
+
+
+def test_windows_cu128_build_requires_exact_cudnn_9102_runtime():
+    root = Path(__file__).resolve().parents[1]
+    builder = (root / "tools" / "build_windows.ps1").read_text(encoding="utf-8")
+    for token in (
+        "$TorchVariant -eq 'cu128'",
+        "torch.backends.cudnn.version()",
+        "$CudnnRuntimeVersion -ne '9.10.2'",
+        "pinned cuDNN 9.10.2.21 runtime family",
+        "Do not package unmatched CUDA/cuDNN DLLs",
+    ):
+        assert token in builder
