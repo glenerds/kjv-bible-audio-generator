@@ -1,4 +1,28 @@
-# Continuation checkpoint — 2026-11-25 (stale source-test assertion fixed; latest full-chapter run active)
+# Continuation checkpoint — 2026-11-25 (cross-platform suites green; long-form Genesis speech test running)
+
+The corrected cross-platform source suites are green. The short Windows smoke MP3 has passed independent Whisper checks on both its original and relocated copies. The separate full Genesis 1 Qwen MP3 is currently being regenerated for long-form Whisper verification; its transcript verdict remains pending.
+
+## Latest completed source validation
+- Cross-platform run **45680064582** (run 122) passed on commit `d0120006c9cbba12a43663742258ce5ea97f2e37`:
+  - Windows 11 / Python 3.12: **165 passed, 1 skipped** (the GUI test has no hosted desktop). All five PowerShell build/helper scripts parsed successfully.
+  - Ubuntu 24.04 / Python 3.13: **162 passed, 4 skipped** (NTFS/Windows-only checks).
+- The earlier failure in this suite was one outdated test string for the renamed Genesis evidence-upload step. The assertion has been corrected; the passing run above includes the updated ordering check for the full-chapter Whisper step.
+
+## Current real-Qwen and package runs
+- Genuine-Qwen run **45679773309** (run 15) on commit `0458ae45146e1ad0fba634b767d244c8e0cdde01` passed CPU runtime installation, pinned model snapshot/hash verification, real VoiceDesign/Base smoke, smoke artifact upload, and FFmpeg installation. It is now running the full Genesis 1 chapter pipeline offline. Long-form Whisper and cross-chapter voice verification have not yet started.
+- The native Windows package repeat **45679773296** (run 28) on the same source commit is still in its native build/acceptance stage. It is a repeat validation of the already successful Windows run `45668073328`; no new package artifact is available yet.
+- The prior successful Windows package run `45668073328` remains verified: both original and relocated smoke MP3s were recognized exactly as “This is a test of the King James Bible narrator voice.” Both transcripts had a 1.0 similarity ratio and the required final phrase.
+- The Qwen Base pinned configuration has no small output-token limit: its `generation_config.json` sets `max_new_tokens: 8192`. The project has not changed the Qwen sampling or voice settings while the cause of the first short-smoke cutoff remains unproven.
+
+## Next verification
+1. Read the new full-chapter report `genesis1-speech-transcript-verification.json` from run `45679773309`; verify recognized opening, final verse, and whole-chapter similarity.
+2. Confirm the independent Genesis 1–2 test reuses the same narrator prompt and that the evidence artifact is retained even if ASR fails.
+3. Inspect the fresh Windows package run for any regression.
+4. Keep customer release on hold until the user has listened to the new MP3s and the RTX 2070 Super, physical USB, long-run recovery, all-1,189-chapter, speaker-attribution and final license checks are complete.
+
+---
+
+
 
 The short packaged Windows speech test has passed Whisper on both the original and relocated MP3s. The full Genesis 1 speech-recognition gate is now implemented, with the latest run using the current cue-timeline checks and evidence-preserving workflow. Its result is still pending.
 
