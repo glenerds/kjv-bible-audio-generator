@@ -21,6 +21,7 @@ New-Item -ItemType Directory -Force -Path $RunRoot, $EvidenceRoot | Out-Null
 $Transcript = Join-Path $EvidenceRoot 'windows-package-acceptance.log'
 Start-Transcript -LiteralPath $Transcript -Force | Out-Null
 $DriveLetter = $null
+$RelocatedRoot = Join-Path $env:RUNNER_TEMP 'KJV Bible Audio Generator Relocated'
 
 function Invoke-PackagedExecutable {
     param(
@@ -132,7 +133,6 @@ try {
 
     # Move the complete app folder and expose it through a new drive letter.
     # This is a drive-letter relocation simulation on NTFS, not a physical USB device.
-    $RelocatedRoot = Join-Path $env:RUNNER_TEMP 'KJV Bible Audio Generator Relocated'
     if (Test-Path $RelocatedRoot) { Remove-Item -LiteralPath $RelocatedRoot -Recurse -Force }
     Move-Item -LiteralPath $DistRoot -Destination $RelocatedRoot
     $Candidates = @('Z:', 'Y:', 'X:', 'W:', 'V:')
@@ -181,11 +181,34 @@ try {
     Copy-Item -LiteralPath $RelocatedMp3 -Destination (Join-Path $EvidenceRoot 'relocated-qwen-smoke.mp3') -Force
     # Diagnostics are written directly into EvidenceRoot by the frozen entrypoint.
 
+    $PackageFiles = @(Get-ChildItem -LiteralPath $RelocatedRoot -File -Recurse)
+    $PackageBytes = [long](($PackageFiles | Measure-Object -Property Length -Sum).Sum)
+    $PackageFileManifest = @(
+        $PackageFiles | ForEach-Object {
+            [ordered]@{
+                path = $_.FullName.Substring($RelocatedRoot.Length).TrimStart('\')
+                size_bytes = [long]$_.Length
+            }
+        }
+    )
+    $PackageManifest = [ordered]@{
+        root = $ExecutableName
+        payload_file_count = $PackageFiles.Count
+        payload_bytes = $PackageBytes
+        payload_gib = [math]::Round($PackageBytes / 1GB, 3)
+        files = $PackageFileManifest
+        note = 'Manifest of the built portable one-folder app after its drive-letter acceptance test.'
+    }
+    $PackageManifest | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $EvidenceRoot 'portable-package-manifest.json') -Encoding UTF8
+
     $Summary = @{
         status = 'passed'
         torch_variant = $TorchVariant
         pyinstaller_mode = 'onedir-windowed'
         packaged_executable = $ExecutableName
+        package_payload_file_count = $PackageFiles.Count
+        package_payload_bytes = $PackageBytes
+        package_payload_gib = [math]::Round($PackageBytes / 1GB, 3)
         bundled_ffmpeg = 'passed'
         package_self_test = 'passed'
         package_real_qwen_audio_smoke = 'passed'
@@ -205,6 +228,10 @@ try {
 finally {
     if ($DriveLetter) {
         & $env:ComSpec /c "subst $DriveLetter /D" | Out-Null
+    }
+    if ($RelocatedRoot -and (Test-Path $RelocatedRoot -PathType Container) -and -not (Test-Path $DistRoot)) {
+        Move-Item -LiteralPath $RelocatedRoot -Destination $DistRoot
+        Write-Host "Restored validated portable app folder to $DistRoot"
     }
     Stop-Transcript | Out-Null
     foreach ($Name in $OfflineNames) {
