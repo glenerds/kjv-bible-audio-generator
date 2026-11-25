@@ -10,6 +10,8 @@ import pytest
 from kjv_audio_generator.attribution import AttributionMap
 from kjv_audio_generator.audio import ChapterAudioAssembler
 from kjv_audio_generator.backend import SyntheticTestBackend
+from kjv_audio_generator.books import BOOKS, TOTAL_CHAPTERS
+from kjv_audio_generator.parser import parse_text
 from kjv_audio_generator.models import BibleDocument, Verse, VerseRef
 from kjv_audio_generator.storage import QueueStore, document_sha256
 from kjv_audio_generator.voices import VoiceRegistry
@@ -40,6 +42,39 @@ def test_queue_claim_complete_and_progress(tmp_path):
     row = store.rows()[0]
     assert len(row["output_sha256"]) == 64 and len(row["cue_sha256"]) == 64
     assert store.progress() == {"pending":1,"running":0,"complete":1,"failed":0}
+
+
+def test_queue_seeds_all_1189_bible_chapters_in_canonical_order(tmp_path):
+    lines = [
+        f"{book} {chapter}:1 Synthetic queue fixture for {book} {chapter}."
+        for book, chapter_count in BOOKS
+        for chapter in range(1, chapter_count + 1)
+    ]
+    document = parse_text("\\n".join(lines))
+    chapters = document.ordered_chapters()
+
+    assert len(chapters) == TOTAL_CHAPTERS == 1189
+    store = QueueStore(tmp_path / "full-bible-queue.sqlite3")
+    store.seed(chapters, document_sha256(chapters))
+
+    rows = store.rows()
+    assert len(rows) == 1189
+    assert (rows[0]["book"], rows[0]["chapter"]) == ("Genesis", 1)
+    assert (rows[-1]["book"], rows[-1]["chapter"]) == ("Revelation", 22)
+    sequences = [int(row["sequence"]) for row in rows]
+    assert sequences == sorted(sequences)
+    assert len(set(sequences)) == TOTAL_CHAPTERS
+    assert store.progress() == {
+        "pending": 1189, "running": 0, "complete": 0, "failed": 0
+    }
+
+    first_three = [store.claim_next() for _ in range(3)]
+    assert [(row["book"], row["chapter"]) for row in first_three] == [
+        ("Genesis", 1), ("Genesis", 2), ("Genesis", 3)
+    ]
+    assert store.progress() == {
+        "pending": 1186, "running": 3, "complete": 0, "failed": 0
+    }
 
 
 def test_running_jobs_recovered_on_restart(tmp_path):
