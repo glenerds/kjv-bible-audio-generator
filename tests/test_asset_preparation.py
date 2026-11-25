@@ -132,7 +132,7 @@ def test_ffmpeg_documentation_records_audited_candidate_and_pending_distribution
     source_commit = "b9ebe81995b58cd4e3177a6c0ad5dc2392f7f7fd"
     assert candidate_sha in readme
     assert source_commit in readme
-    assert "configuration included --enable-version3 and --enable-libmp3lame" in readme
+    assert "configuration included `--enable-version3` and `--enable-libmp3lame`" in readme
     assert "verified the archive size and hash" in readme
     assert "not yet approved for application distribution" in readme
 
