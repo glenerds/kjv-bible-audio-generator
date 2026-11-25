@@ -1,4 +1,35 @@
-# Continuation checkpoint — 2026-11-25 (Windows speech gate passed; full Genesis and cross-chapter Qwen tests passed)
+# Continuation checkpoint — 2026-11-25 (full-chapter speech QA added; latest long-form Whisper run pending)
+
+This is the newest recovery checkpoint. The short Windows smoke-sentence now passes independent ASR on both packaged and relocated MP3s. A new CI-only long-form Whisper gate has been added to verify the complete Genesis 1 chapter against all 31 KJV verses; its first real-Qwen run is in progress and has **not** yet passed or failed.
+
+## New full-chapter speech validation
+- Added `tools/verify_chapter_transcript.py`. It reads the actual Genesis 1 MP3, decodes it to 16 kHz PCM with FFmpeg and transcribes the entire long recording with the pinned English Whisper model:
+  - `openai/whisper-tiny.en`
+  - revision `87c7102498dcde7456f24cfd30239ca606ed9063`
+- Long-form transcription uses Whisper's native long-audio generation with `return_timestamps=True` and untruncated processor features. This follows the Hugging Face Transformers Whisper guidance for audio longer than 30 seconds; it does not split the chapter into unrelated independent snippets: https://huggingface.co/docs/transformers/v4.57.2/en/model_doc/whisper
+- Before ASR, the verifier parses the canonical project fixture `examples/genesis_1_kjv_test.txt` and validates every cue:
+  - All **31 Genesis 1 verse references** must appear in source order.
+  - Multiple speech segments within a verse are rejoined.
+  - Reconstructed cue speech must exactly equal each KJV source verse.
+  - Cue timing must be positive and increasing for every segment.
+- ASR acceptance requires the opening 8-word phrase, final 8-word phrase of verse 31, and at least **0.70 whole-chapter word-sequence similarity**. The report preserves the recognized transcript, comparison scores and source/cue hashes. Human listening remains a separate QA requirement.
+- Added `tests/test_chapter_transcript_validation.py` for exact 31-verse cue reconstruction, missing-verse rejection, split-speech-segment handling, missing final phrase and unrelated/short transcript rejection.
+- Added the long-form verification step after the actual Qwen Genesis 1 generation in `.github/workflows/qwen-real-inference.yml`. The report is included in the Genesis 1 evidence artifact if the test passes.
+- New genuine-Qwen run **45678936690** (run 11) includes this new step. At the last check it was downloading the exact pinned Qwen model snapshots; full Genesis generation, Whisper chapter verification and two-chapter voice identity are queued behind that stage.
+- Cross-platform tests for the new source tests are running in source workflow run **45678962980** (run 113) at commit `41897a1777c8de73815c1e48b77ee560be3ff2d8`. No test result for this new change is claimed yet.
+
+## Prior verified results remain valid
+- Windows package run **45668073328** passed native build, actual Qwen CPU smoke, relocation, FFmpeg decoding and both short-sentence Whisper checks. Both original and relocated MP3s were recognized exactly as “This is a test of the King James Bible narrator voice.” and the required final phrase was present. App artifact ID `15049962652`; evidence artifact ID `15049837796`; package size **13.282 GiB** / **17,803 files**. Workflow: https://github.com/glenerds/kjv-bible-audio-generator/actions/runs/45668073328
+- The prior genuine-Qwen full Genesis 1 run **45663420141** passed: 31 source verses, 33 speech segments, 1 complete chapter, 0 failed, **268.88 seconds** decoded MP3; CPU generation took **1,671.17 seconds**.
+- The prior real two-chapter narrator continuity run passed: 2 complete chapter outputs, one voice-preparation batch, and identical narrator profile fingerprint and prompt SHA-256 across Genesis 1 and Genesis 2.
+- Latest previously completed full source suite run **45668083260** passed: Windows **157 passed, 1 skipped** and Ubuntu **154 passed, 4 skipped**. The new long-form verifier's source tests are not included in that earlier count.
+
+## Current release status
+**Developer prototype; not ready for customer use.** The short sentence's new Windows MP3s have passed independent Whisper checks, but the full Genesis 1 transcript gate is pending. Still open: listen to the new smoke MP3, verify complete Genesis 1 speech by ASR, target RTX 2070 Super CUDA performance/VRAM, physical USB operation, long-run stop/recovery, full 1,189-chapter run, Bible-wide speaker attribution review and final license/source-obligation review.
+
+---
+
+
 
 This is the newest verified recovery checkpoint. The user's earlier smoke MP3 was genuinely heard as truncated. A later native Windows package now passes independent speech recognition on both its original and relocated MP3s. Human listening approval of this new sample remains separate and is still required.
 
