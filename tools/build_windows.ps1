@@ -18,6 +18,10 @@ try {
     & $Python -m pip install "torch==$TorchVersion" "torchaudio==$TorchVersion" --index-url $TorchIndex
     if ($LASTEXITCODE -ne 0) { throw 'Could not install the selected PyTorch/torchaudio wheel set.' }
     if ($TorchVariant -eq 'cu128') {
+        $TorchCudaRuntimeVersion = (& $Python -c 'import torch; print("cpu" if torch.version.cuda is None else torch.version.cuda)').Trim()
+        if ($LASTEXITCODE -ne 0 -or $TorchCudaRuntimeVersion -ne '12.8') {
+            throw "The cu128 package must use the CUDA 12.8 PyTorch wheel; detected CUDA $TorchCudaRuntimeVersion."
+        }
         $CudnnRuntimeVersion = (& $Python -c 'import torch; v=torch.backends.cudnn.version(); print("unknown" if v is None else f"{v//10000}.{(v//100)%100}.{v%100}")').Trim()
         if ($LASTEXITCODE -ne 0 -or $CudnnRuntimeVersion -ne '9.10.2') {
             throw "PyTorch cu128 must load the pinned cuDNN 9.10.2.21 runtime family; detected $CudnnRuntimeVersion. Do not package unmatched CUDA/cuDNN DLLs."
