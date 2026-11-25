@@ -178,6 +178,8 @@ def test_qwen_design_to_clone_prompt_is_saved_and_reused(tmp_path, monkeypatch):
     assert len(backend._prompt_cache["moses"]["ref_spk_embedding"]) == 1
     clone_calls = [c for c in FakeQwenModel.calls if c[0] == "clone"]
     assert len(clone_calls) == 2
+    assert all(call[3] is True for call in clone_calls)  # production uses Qwen non-streaming mode
+    assert [call[1] for call in clone_calls] == ["A line by Moses", "Another line by Moses"]
     assert all(call[2][0].ref_text == profiles[1].reference_text for call in clone_calls)
     assert all(call[2][0].icl_mode and call[2][0].ref_code is not None for call in clone_calls)
 
