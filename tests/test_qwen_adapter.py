@@ -682,11 +682,20 @@ def test_qwen_releases_voice_design_before_loading_base_to_bound_vram(tmp_path, 
         return original_load_model(model_path)
 
     monkeypatch.setattr(backend, "_load_model", tracked_load_model)
-    backend.prepare_profiles([
-        VoiceProfile("narrator", "Narrator", [], "Clear warm narrator"),
-        VoiceProfile("god", "God", [], "Low, calm, resonant voice"),
-    ])
+    narrator = VoiceProfile("narrator", "Narrator", [], "Clear warm narrator")
+    god = VoiceProfile("god", "God", [], "Low, calm, resonant voice")
+    profiles = [narrator, god]
+    backend.prepare_profiles(profiles)
 
     assert loaded == [design, base]
+    assert backend._design_model is None
+    assert backend._base_model is not None
+
+    # Editing a voice description invalidates that speaker's reference/prompt.
+    # The already loaded Base model must be released before VoiceDesign reloads.
+    narrator.voice_description = "Updated clear, warm narrator with a slightly softer delivery."
+    backend.prepare_profiles(profiles)
+
+    assert loaded == [design, base, design, base]
     assert backend._design_model is None
     assert backend._base_model is not None
