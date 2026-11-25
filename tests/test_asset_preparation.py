@@ -866,6 +866,8 @@ def test_cudnn_9102_eula_and_acknowledgements_are_pinned_and_required_for_window
     for token in (
         "$ExpectedCudnnEulaUri",
         "$ExpectedCudnnAcknowledgementsUri",
+        "$ExpectedCudnnReleaseMetadataUri",
+        "$CudnnNoticeManifest.upstream_release_metadata -ne $ExpectedCudnnReleaseMetadataUri",
         "$CudnnNoticeManifest.cudnn_version -ne '9.10.2.21'",
         "$CudnnNoticeManifest.cudnn_archive -ne 'cudnn-windows-x86_64-9.10.2.21_cuda12-archive.zip'",
         "$ActualCudnnEulaSha256",
