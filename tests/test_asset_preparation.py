@@ -125,7 +125,7 @@ def test_hf_download_cli_version_stays_compatible_with_pinned_transformers():
     assert "transformers==4.57.3" in pyproject
 
 
-def test_ffmpeg_documentation_records_a_pinned_lgplv3_candidate_without_claiming_binary_verification():
+def test_ffmpeg_documentation_records_audited_candidate_and_pending_distribution_review():
     root = Path(__file__).resolve().parents[1]
     readme = (root / "LICENSES" / "README_FFMPEG.md").read_text(encoding="utf-8")
     candidate_sha = "78d1f7728fef503b50a6de5866950a96d7e4db0fdb9dfaa47fc2c6691a48370b"
@@ -133,8 +133,8 @@ def test_ffmpeg_documentation_records_a_pinned_lgplv3_candidate_without_claiming
     assert candidate_sha in readme
     assert source_commit in readme
     assert "configuration included --enable-version3 and --enable-libmp3lame" in readme
-    assert "confirmed both its byte length and SHA-256" in readme
-    assert "not an approved app dependency" in readme
+    assert "verified the archive size and hash" in readme
+    assert "not yet approved for application distribution" in readme
 
 
 def test_windows_builder_requires_complete_hash_manifest_for_ffmpeg_dependency_notices():
