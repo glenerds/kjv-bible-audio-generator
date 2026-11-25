@@ -21,6 +21,47 @@ New-Item -ItemType Directory -Force -Path $RunRoot, $EvidenceRoot | Out-Null
 $Transcript = Join-Path $EvidenceRoot 'windows-package-acceptance.log'
 Start-Transcript -LiteralPath $Transcript -Force | Out-Null
 $DriveLetter = $null
+
+function Invoke-PackagedExecutable {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$ExecutablePath,
+
+        [Parameter(Mandatory = $true)]
+        [string[]]$Arguments,
+
+        [ValidateRange(1, 7200)]
+        [int]$TimeoutSeconds = 1800
+    )
+
+    $ResolvedExecutable = (Resolve-Path -LiteralPath $ExecutablePath).Path
+    $StartInfo = [System.Diagnostics.ProcessStartInfo]::new()
+    $StartInfo.FileName = $ResolvedExecutable
+    $StartInfo.WorkingDirectory = Split-Path -Parent $ResolvedExecutable
+    $StartInfo.UseShellExecute = $false
+    $StartInfo.CreateNoWindow = $true
+    foreach ($Argument in $Arguments) {
+        [void]$StartInfo.ArgumentList.Add([string]$Argument)
+    }
+
+    $Process = [System.Diagnostics.Process]::new()
+    $Process.StartInfo = $StartInfo
+    try {
+        if (-not $Process.Start()) {
+            throw "Could not start packaged application: $ResolvedExecutable"
+        }
+        if (-not $Process.WaitForExit($TimeoutSeconds * 1000)) {
+            try { $Process.Kill() } catch { }
+            $Process.WaitForExit()
+            throw "Packaged application exceeded its $TimeoutSeconds second timeout: $ResolvedExecutable"
+        }
+        $Process.WaitForExit()
+        return [int]$Process.ExitCode
+    }
+    finally {
+        $Process.Dispose()
+    }
+}
 try {
     Write-Host "Starting full Windows package acceptance with TorchVariant=$TorchVariant"
     Write-Host 'Available filesystem capacity before build:'
@@ -48,10 +89,7 @@ try {
     $SelfTestOutput = Join-Path $DistRoot 'portable-acceptance/self-test'
     $SelfTestDiagnostics = Join-Path $EvidenceRoot 'self-test-entrypoint-diagnostics.json'
     [Environment]::SetEnvironmentVariable('KJV_APP_DIAGNOSTICS_FILE', $SelfTestDiagnostics, 'Process')
-    & $Executable --self-test --device cpu --output $SelfTestOutput
-    if ($LASTEXITCODE -ne 0) {
-        throw "Packaged --self-test failed with exit code $LASTEXITCODE."
-    }
+    $SelfTestExitCode = Invoke-PackagedExecutable -ExecutablePath $Executable -Arguments @('--self-test', '--device', 'cpu', '--output', $SelfTestOutput) -TimeoutSeconds 900
     $SelfTestReport = Join-Path $SelfTestOutput 'metadata/self_test_report.json'
     if (-not (Test-Path $SelfTestReport -PathType Leaf)) {
         $DiagnosticText = if (Test-Path $SelfTestDiagnostics -PathType Leaf) { Get-Content -Raw -LiteralPath $SelfTestDiagnostics } else { 'No entrypoint diagnostics were written.' }
@@ -59,7 +97,7 @@ try {
 
     }
     $SelfTest = Get-Content -Raw -LiteralPath $SelfTestReport | ConvertFrom-Json
-    if (-not $SelfTest.ok -or @($SelfTest.checks.PSObject.Properties | Where-Object { -not $_.Value }).Count -gt 0) {
+    if ($SelfTestExitCode -ne 0 -or -not $SelfTest.ok -or @($SelfTest.checks.PSObject.Properties | Where-Object { -not $_.Value }).Count -gt 0) {
         throw "Packaged self-test reported a failed check: $($SelfTest | ConvertTo-Json -Depth 8 -Compress)"
     }
     Copy-Item -LiteralPath $SelfTestReport -Destination (Join-Path $EvidenceRoot 'self-test-report.json') -Force
@@ -67,16 +105,13 @@ try {
     $AudioOutput = Join-Path $DistRoot 'portable-acceptance/audio-smoke'
     $AudioDiagnostics = Join-Path $EvidenceRoot 'audio-smoke-entrypoint-diagnostics.json'
     [Environment]::SetEnvironmentVariable('KJV_APP_DIAGNOSTICS_FILE', $AudioDiagnostics, 'Process')
-    & $Executable --audio-smoke --device cpu --output $AudioOutput
-    if ($LASTEXITCODE -ne 0) {
-        throw "Packaged --audio-smoke failed with exit code $LASTEXITCODE."
-    }
+    $AudioExitCode = Invoke-PackagedExecutable -ExecutablePath $Executable -Arguments @('--audio-smoke', '--device', 'cpu', '--output', $AudioOutput) -TimeoutSeconds 1800
     $AudioReport = Join-Path $AudioOutput 'metadata/audio_smoke_report.json'
     if (-not (Test-Path $AudioReport -PathType Leaf)) {
         throw 'Packaged --audio-smoke did not create its machine-readable report.'
     }
     $Audio = Get-Content -Raw -LiteralPath $AudioReport | ConvertFrom-Json
-    if (-not $Audio.ok -or [int]$Audio.samples -le 0 -or [int]$Audio.sample_rate -ne 24000) {
+    if ($AudioExitCode -ne 0 -or -not $Audio.ok -or [int]$Audio.samples -le 0 -or [int]$Audio.sample_rate -ne 24000) {
         throw "Packaged audio-smoke report is invalid: $($Audio | ConvertTo-Json -Depth 8 -Compress)"
     }
     $AudioMp3 = Join-Path $AudioOutput 'Genesis/Genesis_001.mp3'
@@ -118,30 +153,24 @@ try {
     $RelocatedSelfOutput = Join-Path $RelocatedDriveRoot 'portable-acceptance-relocated/self-test'
     $RelocatedSelfDiagnostics = Join-Path $EvidenceRoot 'relocated-self-test-entrypoint-diagnostics.json'
     [Environment]::SetEnvironmentVariable('KJV_APP_DIAGNOSTICS_FILE', $RelocatedSelfDiagnostics, 'Process')
-    & $RelocatedExecutable --self-test --device cpu --output $RelocatedSelfOutput
-    if ($LASTEXITCODE -ne 0) {
-        throw "Relocated packaged --self-test failed with exit code $LASTEXITCODE."
-    }
+    $RelocatedSelfExitCode = Invoke-PackagedExecutable -ExecutablePath $RelocatedExecutable -Arguments @('--self-test', '--device', 'cpu', '--output', $RelocatedSelfOutput) -TimeoutSeconds 900
     $RelocatedSelfReport = Join-Path $RelocatedSelfOutput 'metadata/self_test_report.json'
     if (-not (Test-Path $RelocatedSelfReport -PathType Leaf)) {
         throw 'Relocated packaged self-test did not create its report.'
     }
     $RelocatedSelf = Get-Content -Raw -LiteralPath $RelocatedSelfReport | ConvertFrom-Json
-    if (-not $RelocatedSelf.ok) { throw 'Relocated package self-test reported a failed check.' }
+    if ($RelocatedSelfExitCode -ne 0 -or -not $RelocatedSelf.ok) { throw 'Relocated package self-test reported a failed check.' }
 
     $RelocatedAudioOutput = Join-Path $RelocatedDriveRoot 'portable-acceptance-relocated/audio-smoke'
     $RelocatedAudioDiagnostics = Join-Path $EvidenceRoot 'relocated-audio-smoke-entrypoint-diagnostics.json'
     [Environment]::SetEnvironmentVariable('KJV_APP_DIAGNOSTICS_FILE', $RelocatedAudioDiagnostics, 'Process')
-    & $RelocatedExecutable --audio-smoke --device cpu --output $RelocatedAudioOutput
-    if ($LASTEXITCODE -ne 0) {
-        throw "Relocated packaged --audio-smoke failed with exit code $LASTEXITCODE."
-    }
+    $RelocatedAudioExitCode = Invoke-PackagedExecutable -ExecutablePath $RelocatedExecutable -Arguments @('--audio-smoke', '--device', 'cpu', '--output', $RelocatedAudioOutput) -TimeoutSeconds 1800
     $RelocatedAudioReport = Join-Path $RelocatedAudioOutput 'metadata/audio_smoke_report.json'
     if (-not (Test-Path $RelocatedAudioReport -PathType Leaf)) {
         throw 'Relocated package audio smoke did not create its report.'
     }
     $RelocatedAudio = Get-Content -Raw -LiteralPath $RelocatedAudioReport | ConvertFrom-Json
-    if (-not $RelocatedAudio.ok) { throw 'Relocated package audio smoke reported a failure.' }
+    if ($RelocatedAudioExitCode -ne 0 -or -not $RelocatedAudio.ok) { throw 'Relocated package audio smoke reported a failure.' }
     $RelocatedFfmpeg = Join-Path $RelocatedDriveRoot '_internal/ffmpeg.exe'
     $RelocatedMp3 = Join-Path $RelocatedAudioOutput 'Genesis/Genesis_001.mp3'
     & $RelocatedFfmpeg -hide_banner -loglevel error -i $RelocatedMp3 -f null NUL

@@ -700,6 +700,12 @@ def test_native_windows_package_acceptance_builds_runs_and_relocates_the_frozen_
         "relocated-audio-smoke-report.json",
         "KJV_APP_DIAGNOSTICS_FILE",
         "self-test-entrypoint-diagnostics.json",
+        "function Invoke-PackagedExecutable",
+        "[System.Diagnostics.ProcessStartInfo]::new()",
+        "$StartInfo.ArgumentList.Add",
+        "$Process.WaitForExit($TimeoutSeconds * 1000)",
+        "$Process.Kill()",
+        "-TimeoutSeconds 1800",
     ):
         assert token in script
 
