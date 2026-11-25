@@ -1,12 +1,15 @@
 {
   "binary_file": "ffmpeg.exe",
-  "binary_sha256": "REPLACE_WITH_THE_EXACT_64_CHARACTER_SHA256_OF_THE_SUPPLIED_BINARY",
+  "binary_sha256": "3209f0ba6096189de3f850f65488bdb535177b7e46e0b16e902b3230c5ff74fe",
   "version_line": "REPLACE_WITH_THE_FIRST_LINE_OF_ffmpeg_-version",
   "configuration": "REPLACE_WITH_THE_COMPLETE_CONFIGURATION_LINE_FROM_ffmpeg_-version",
   "license_spdx": "LGPL-3.0-or-later",
   "license_file": "FFMPEG_LICENSE.txt",
-  "license_sha256": "REPLACE_WITH_SHA256_OF_THE_EXACT_LICENSE_TEXT_FILE",
+  "license_sha256": "da7eabb7bafdf7d3ae5e9f223aa5bdc1eece45ac569dc21b3b037520b4464768",
   "binary_source_url": "https://REPLACE-WITH-THE-EXACT-BINARY-DOWNLOAD-URL",
   "source_url": "https://REPLACE-WITH-THE-MATCHING-FFMPEG-SOURCE-ARCHIVE-OR-COMMIT",
-  "notes": "Only an LGPL build (2.1-or-later or 3.0-or-later) is permitted here. Do not enable --enable-gpl or --enable-nonfree. The exact binary and build configuration must match this manifest. Include the matching LGPL text and comply with FFmpeg's source/relinking obligations before commercial distribution."
+  "notes": "Only an LGPL build (2.1-or-later or 3.0-or-later) is permitted here. Do not enable --enable-gpl or --enable-nonfree. The exact binary and build configuration must match this manifest. Include the matching LGPL text and comply with FFmpeg's source/relinking obligations before commercial distribution.",
+  "archive_sha256": "78d1f7728fef503b50a6de5866950a96d7e4db0fdb9dfaa47fc2c6691a48370b",
+  "archive_bytes": 179056458,
+  "source_commit": "b9ebe81995b58cd4e3177a6c0ad5dc2392f7f7fd"
 }
