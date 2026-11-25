@@ -72,3 +72,29 @@ def test_full_public_domain_kjv_genesis1_flows_through_synthetic_pipeline(tmp_pa
     assert [item["reference"] for item in payload["segments"]].count("Genesis 1:31") == 1
     assert all(item["end_seconds"] > item["start_seconds"] for item in payload["segments"])
     assert backend.is_test_backend is True
+
+
+def test_real_cross_chapter_voice_script_checks_persistent_narrator_profile():
+    root = Path(__file__).resolve().parents[1]
+    script = (root / "tools" / "qwen_cross_chapter_voice_real.py").read_text(encoding="utf-8")
+    fixture = (root / "examples" / "genesis_cross_chapter_voice_test.txt").read_text(encoding="utf-8")
+    source_note = (root / "examples" / "GENESIS_CROSS_CHAPTER_VOICE_TEST_SOURCE.md").read_text(encoding="utf-8")
+    for token in (
+        "ChapterWorker(",
+        "QwenVoiceBackend(",
+        "ChapterAudioAssembler(",
+        "narrator_prompt_hashes",
+        "narrator_fingerprint_before",
+        "narrator_fingerprint_after",
+        "len(preparing_events) != 1",
+        'design_speakers != ["adam", "narrator"]',
+        'clone_speakers != ["adam", "narrator"]',
+        "GENUINE_QWEN_CROSS_CHAPTER_VOICE_IDENTITY_PASSED",
+        "SyntheticTestBackend",
+        "offline_inference",
+    ):
+        assert token in script
+    assert fixture.count("Genesis 1:1 ") == 1
+    assert fixture.count("Genesis 2:23 ") == 1
+    assert "not a Bible import" in source_note
+    assert "Genesis.json" in source_note
