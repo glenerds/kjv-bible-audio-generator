@@ -1,4 +1,34 @@
-# Continuation checkpoint — 2026-11-25 (latest Qwen adapter tests green; Genesis full-chapter speech gate pending)
+# Continuation checkpoint — 2026-11-25 (second Windows package speech pass; full Genesis ASR and queue test pending)
+
+The short packaged Windows sentence has now passed Whisper on **four independent MP3 outputs across two separate package runs** (original and relocated copies in each run). The second native Windows package is fully uploaded. The full Genesis 1 Qwen chapter transcript and the newly added 1,189-chapter queue test remain in progress.
+
+## Latest full-Bible queue test addition
+- Added `test_queue_seeds_all_1189_bible_chapters_in_canonical_order` to `tests/test_storage_worker_audio.py`.
+- It constructs one parsed chapter record for every canonical KJV chapter, seeds the actual SQLite `QueueStore`, verifies **1,189 pending rows**, ascending unique sequence keys from Genesis 1 through Revelation 22, and confirms the first three claimed jobs are Genesis 1, 2 and 3.
+- This is a fast storage/queue test, not an audio-generation test; real Qwen full-chapter speech remains a separate step.
+- The first run and a fixture-newline correction are commits `434d904356cd63f76004f205e3bb7c17d625e83e` and `323242e6b5aa32ac411434a226399f2b127f4b2a`. Cross-platform runs **45682936456** (run 129) and **45682982827** (run 130) are in progress. No result is claimed yet.
+
+## Second successful native Windows portable package
+- Package workflow run **45679773296** (run 28) completed successfully on commit `0458ae45146e1ad0fba634b767d244c8e0cdde01`.
+- The frozen app build, five-check self-test, real Qwen CPU smoke, FFmpeg MP3 decode, simulated `Z:` relocation, relocated self-test and relocated Qwen smoke all passed.
+- The corrected pinned Whisper step then passed on both final MP3s:
+  - Original packaged MP3: **3.76 s**, recognized exactly “This is a test of the King James Bible narrator voice.”, similarity **1.0**, final phrase present.
+  - Relocated MP3: **4.24 s**, same exact full transcript, similarity **1.0**, final phrase present.
+- Acceptance evidence artifact: `windows-portable-package-acceptance`, ID **15053954142**. Full app artifact: `kjv-bible-audio-generator-portable-windows-x64`, ID **15055775380**, **14,264,796,841 bytes** (~13.282 GiB).
+- The first successful Windows package run remains **45668073328**, artifact IDs `15049837796` (evidence) and `15049962652` (application). Taken together, the two package runs provide four independent short-sentence MP3 transcriptions, all exact matches.
+- The relocated test uses `subst` on NTFS, not a physical removable USB. Both package speech tests run on Windows CPU; RTX 2070 Super CUDA validation remains open.
+
+## Full Genesis 1 speech verification
+- Genuine-Qwen run **45679773309** (run 15) has passed model installation and SHA-256 pinning, offline real VoiceDesign/Base smoke, smoke artifact upload and FFmpeg setup. It remains on the actual full Genesis 1 chapter generation step.
+- Its short real-Qwen smoke artifact `15053038849` contains a 3.76-second non-silent waveform at 24 kHz (90,240 frames; peak 0.729127; RMS 0.147869). These are waveform health metrics only, not a complete transcript verdict.
+- The full Genesis output is expected to be followed by long-form Whisper verification of the opening, the final verse and whole-chapter similarity, then the independent Genesis 1–2 narrator prompt reuse check. The full-chapter transcript is still pending.
+
+## Current release status
+**Developer prototype only; not cleared for customer use.** The Windows short smoke has passed on four new package-generated MP3s, and source CI previously passed (Windows 165 passed/1 headless skip; Ubuntu 162 passed/4 platform skips). Still open: the new full Genesis 1 long-form ASR, new 1,189-row queue test, human listening approval, target RTX 2070 Super CUDA/VRAM, physical USB, long-run stop/recovery, full 1,189-chapter audio generation, Bible-wide speaker attribution and final license/source review.
+
+---
+
+
 
 The short Windows packaged sentence has passed Whisper on both the original and relocated MP3s. The new adapter regression is green on Windows and Ubuntu. The latest genuine-Qwen CPU run has uploaded its real-model smoke evidence and is still generating the full Genesis 1 chapter for long-form transcription.
 
