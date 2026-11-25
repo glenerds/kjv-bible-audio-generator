@@ -9,6 +9,7 @@ on:
       - "tools/qwen_real_smoke.py"
       - "tools/qwen_genesis1_real.py"
       - "tools/qwen_cross_chapter_voice_real.py"
+      - "tools/verify_chapter_transcript.py"
       - "src/kjv_audio_generator/backend.py"
       - "src/kjv_audio_generator/worker.py"
       - "src/kjv_audio_generator/audio.py"
@@ -108,7 +109,7 @@ jobs:
         with:
           name: qwen-real-cpu-inference-smoke
           path: artifacts/qwen-real-inference/output/**
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 14
 
       - name: Install FFmpeg for real Genesis 1 MP3 pipeline (CI only)
@@ -119,6 +120,7 @@ jobs:
           ffmpeg -hide_banner -encoders | grep -E '(^|[[:space:]])libmp3lame([[:space:]]|$)'
 
       - name: Run full real-Qwen Genesis 1 chapter pipeline offline
+        id: genesis1
         env:
           HF_HOME: ${{ runner.temp }}/huggingface
           HF_HUB_DISABLE_TELEMETRY: "1"
@@ -151,18 +153,20 @@ jobs:
             --report artifacts/qwen-real-inference/genesis1-output/genesis1-speech-transcript-verification.json \
             --ffmpeg "$(command -v ffmpeg)"
 
-      - name: Upload genuine Genesis 1 MP3 and timing evidence
-        if: success()
+      - name: Upload genuine Genesis 1 MP3 and speech-verification evidence
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: qwen-real-genesis1-pipeline
           path: |
             artifacts/qwen-real-inference/model-integrity.json
             artifacts/qwen-real-inference/genesis1-output/**
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 14
 
       - name: Run real Qwen narrator identity check across Genesis 1 and 2 offline
+        if: always() && steps.genesis1.outcome == 'success'
+        id: cross_chapter
         env:
           HF_HOME: ${{ runner.temp }}/huggingface
           HF_HUB_DISABLE_TELEMETRY: "1"
@@ -182,7 +186,7 @@ jobs:
             --ffmpeg "$(command -v ffmpeg)"
 
       - name: Upload genuine cross-chapter narrator identity evidence
-        if: success()
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: qwen-real-cross-chapter-voice-identity
