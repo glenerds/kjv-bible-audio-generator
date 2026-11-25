@@ -111,7 +111,7 @@ foreach ($DataFile in @('Clear-Aligned-Projections.tsv','character_detail.semant
         throw "Required bundled speaker-attribution data is missing: $(Join-Path $Attribution $DataFile)"
     }
 }
-foreach ($LicenseFile in @('GLYSSEN_MIT.txt','QWEN3_TTS_APACHE_2.0.txt','TOKENIZERS_APACHE_2.0.txt','FFMPEG_LICENSE.txt','FFMPEG_BUILD_MANIFEST.json')) {
+foreach ($LicenseFile in @('GLYSSEN_MIT.txt','QWEN3_TTS_APACHE_2.0.txt','QWEN3_TTS_APACHE_2.0.txt','TOKENIZERS_APACHE_2.0.txt','CUDNN_9.7.0_EULA.html','CUDNN_9.7.0_ACKNOWLEDGEMENTS.html','NVIDIA_CUDNN_NOTICE_MANIFEST.json','FFMPEG_LICENSE.txt','FFMPEG_BUILD_MANIFEST.json')) {
     if (-not (Test-Path (Join-Path $Licenses $LicenseFile) -PathType Leaf)) {
         throw "Required third-party license/build notice is missing: $(Join-Path $Licenses $LicenseFile)"
     }
