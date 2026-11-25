@@ -1,3 +1,22 @@
+# Native Windows CI follow-up — 2026-11-24 (sparse model test fixtures)
+
+The 0.4.11 native Windows / Python 3.12 CI job successfully installed FFmpeg and CPU PyTorch, installed the dev extra, and passed compileall. The full test run then exhausted the hosted runner's system disk. The error occurred in pytest fixture setup (WinError 112) because the Qwen adapter tests create fake 3.5 GB and 650 MB weight placeholders using Path.truncate(). On Linux the fixture files are sparse; on Windows, the same truncate operation reserved actual disk blocks.
+
+Fix committed in the test fixture:
+- Added _truncate_sparse_file(); on Windows it calls FSCTL_SET_SPARSE through DeviceIoControl before extending the file, with a hard failure if marking the file sparse is unsupported.
+- On non-Windows systems it retains the normal truncate behavior.
+- The fake weights remain structurally large for model preflight tests, without consuming several gigabytes on NTFS.
+
+Local revalidation in the clean 0.4.10 archive extraction, with the 0.4.11 source changes applied:
+- python -m compileall -q src tests tools — PASS.
+- PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 xvfb-run -a env PYTHONPATH=src pytest -q — 125 passed in 27.55 seconds.
+- The previous hosted Ubuntu run passed all 125 tests after explicit FFmpeg and CPU PyTorch setup.
+- New native Windows run is triggered by this commit. Await its test and PowerShell parse results; no Windows suite pass is claimed yet.
+
+This is a test-fixture correction. It does not claim that the Windows application package, Qwen inference, or production FFmpeg bundle has passed acceptance.
+
+---
+
 # CI follow-up — 2026-11-24 (FFmpeg test prerequisite)
 
 The corrected 0.4.11 CI run installed CPU PyTorch successfully. The Ubuntu runner compiled the source and reached the full test suite: **110 passed, 12 failed, 2 skipped**. The failures all trace to the test host lacking the `ffmpeg` executable; the audio integration tests explicitly require it, and some worker tests fail when the encoder cannot be launched. No Qwen inference was performed.

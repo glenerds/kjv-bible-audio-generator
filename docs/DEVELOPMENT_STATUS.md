@@ -1,3 +1,11 @@
+## Native Windows CI follow-up — 2026-11-24
+
+Windows/Python 3.12 installed its test dependencies and compiled source, but its full test step exhausted the runner disk. The Qwen adapter tests create fake 3.5 GB / 650 MB model weights with Path.truncate; unlike Linux, the Windows filesystem allocated real blocks. Added a fixture helper that explicitly marks those NTFS files sparse with FSCTL_SET_SPARSE (DeviceIoControl) before truncation. Local compileall and full suite re-run passed: 125 tests. Latest hosted Ubuntu run also passed all 125 tests. The new Windows hosted run and PowerShell parse are pending.
+
+This fix addresses test-only disk allocation; not a production model download, integrity verification, or application behavior change.
+
+---
+
 ## CI follow-up — 2026-11-24
 
 The corrected PyTorch test dependency got the Ubuntu CI job past test collection. Its next failure was environmental: the job had no FFmpeg executable, while 12 tests deliberately require FFmpeg for actual audio assembly/worker flows. Result: 110 passed, 12 failed, 2 skipped; all reported failures trace to missing FFmpeg. CI now installs FFmpeg on Windows (Chocolatey) and Linux (apt) solely to satisfy test prerequisites; a regression test asserts both install commands. This does not establish the production FFmpeg candidate/license gate. New hosted run result pending.

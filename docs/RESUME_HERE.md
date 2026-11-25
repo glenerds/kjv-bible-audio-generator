@@ -1,3 +1,9 @@
+## Native Windows CI follow-up — sparse Qwen test fixtures
+
+The hosted Windows/Python 3.12 job installed Python, FFmpeg, PyTorch and project dev dependencies, then passed compileall. During full tests it exhausted disk space: Qwen adapter fixtures created multi-gigabyte fake weights via Path.truncate(), which is sparse on Linux but allocates real disk blocks on Windows. Fixed tests/test_qwen_adapter.py with _truncate_sparse_file(), which calls NTFS FSCTL_SET_SPARSE before extending Windows fixture files. Local revalidation: compileall PASS; 125 tests passed on Linux. Latest hosted Ubuntu run passed 125 tests. Recheck the new Windows run and its PowerShell parse step before claiming native Windows source-test acceptance.
+
+---
+
 ## CI follow-up — 2026-11-24: audio tests need FFmpeg in the runner
 
 The 0.4.11 hosted Linux runner successfully installed CPU PyTorch and compiled source, then the full suite reported 110 passed, 12 failed, 2 skipped. All 12 failures resulted from `ffmpeg` not being installed on the runner. Added CI-only installation on Windows via Chocolatey and Ubuntu via apt, plus a test asserting the workflow provisions FFmpeg. This test FFmpeg is not the unapproved production binary. Wait for the next hosted run to verify the full Windows and Linux suites.

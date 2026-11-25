@@ -10,6 +10,50 @@ from kjv_audio_generator.backend import QwenSettings, QwenVoiceBackend
 from kjv_audio_generator.voices import VoiceProfile
 
 
+def _truncate_sparse_file(target, size):
+    """Create a large logical weight file without reserving its full disk size."""
+    with target.open("w+b") as handle:
+        if sys.platform == "win32":
+            # pathlib.Path.truncate() creates sparse files on the Linux CI
+            # filesystem, but a normal Windows truncate can allocate every
+            # zero byte. Mark the NTFS file sparse before extending it so
+            # repeated 3.5 GB / 650 MB fake model fixtures do not fill the
+            # hosted runner's system disk.
+            import ctypes
+            import msvcrt
+            from ctypes import wintypes
+
+            fsctl_set_sparse = 0x000900C4  # FSCTL_SET_SPARSE from winioctl.h
+            kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+            device_io_control = kernel32.DeviceIoControl
+            device_io_control.argtypes = [
+                wintypes.HANDLE,
+                wintypes.DWORD,
+                ctypes.c_void_p,
+                wintypes.DWORD,
+                ctypes.c_void_p,
+                wintypes.DWORD,
+                ctypes.POINTER(wintypes.DWORD),
+                ctypes.c_void_p,
+            ]
+            device_io_control.restype = wintypes.BOOL
+            bytes_returned = wintypes.DWORD(0)
+            handle_value = wintypes.HANDLE(msvcrt.get_osfhandle(handle.fileno()))
+            ok = device_io_control(
+                handle_value,
+                fsctl_set_sparse,
+                None,
+                0,
+                None,
+                0,
+                ctypes.byref(bytes_returned),
+                None,
+            )
+            if not ok:
+                raise ctypes.WinError(ctypes.get_last_error())
+        handle.truncate(size)
+
+
 def make_fake_model_folder(path):
     """Build the file layout required by the official Qwen3-TTS model cards."""
     files = (
@@ -38,14 +82,13 @@ def make_fake_model_folder(path):
             target.write_text("{}", encoding="utf-8")
         else:
             target.write_bytes(b"test-placeholder")
-    # Sparse files keep the fake model folder structurally realistic without
-    # consuming several gigabytes of physical CI storage.
+    # Mark fake model weights sparse on Windows before extending them;
+    # Linux filesystems already make truncate() sparse by default.
     for relative, minimum in (("model.safetensors", 3_500_000_000),
                               ("speech_tokenizer/model.safetensors", 650_000_000)):
         target = path / relative
         target.parent.mkdir(parents=True, exist_ok=True)
-        with target.open("wb") as handle:
-            handle.truncate(minimum)
+        _truncate_sparse_file(target, minimum)
     return path
 
 
