@@ -1,3 +1,28 @@
+# Continuation update — 2026-11-25 (Genesis workflow integrated; full real chapter queued/running)
+
+## Current recovery point
+- Public repo: https://github.com/glenerds/kjv-bible-audio-generator
+- Prototype version: **0.4.12**.
+- Source branch head at update start: `7765234f7b51af2f77b5b4f7efcb82706489930e`.
+- First actual offline Qwen CPU speech passed on run `45635718244` and was independently inspected. Both 1.7B snapshots and tokenizer weights passed full-file SHA-256; Qwen VoiceDesign and Base generated a real 24 kHz mono WAV, 3.12 seconds, RTF 4.208, peak RSS 5,095.1 MiB. Artifact `qwen-real-cpu-inference-smoke` ID `15033491559`.
+- Current Genesis 1 real-model harness: `tools/qwen_genesis1_real.py`. It runs all 31 Genesis 1 verses through the actual `ChapterWorker`, `QwenVoiceBackend` and `ChapterAudioAssembler`, with two explicit reviewed God-speech overrides. It verifies 33 cue segments, exact text preservation for every verse, 96 kbps MP3 output, a real FFmpeg decode and non-silent audio. Static harness/test code is committed; there is not yet a real Genesis MP3 pass.
+- Combined workflow `.github/workflows/qwen-real-inference.yml` now downloads the two models once, verifies them, performs the short offline voice smoke, uploads that evidence, installs Linux FFmpeg, and then runs the full Genesis pipeline with the same already-downloaded local snapshots. It uploads a second artifact `qwen-real-genesis1-pipeline`.
+- Combined Qwen/Genesis workflow run `45639088515` on commit `a72b9e0601d59f195d25a18abbe91857ffefbfb7` was accepted and had reached the model-download step on the most recent check. The run's final result and Genesis output have not yet been verified.
+- Source suite run `45638207016` for Genesis harness commit `0437e4c73c36ab1f876c6b791701548cdb975ded` passed: Windows **141 passed, 1 skipped** (headless GUI test); Ubuntu **138 passed, 4 skipped** (Windows-only tests). The five PowerShell scripts parsed.
+- A newer run `45639088537` on `a72b9e...` found one test-only issue: the old static assertion expected three HF cache variables, while the new Genesis inference step correctly makes four. No product code failed in that run. The assertion was corrected in commit `7765234f7b51af2f77b5b4f7efcb82706489930e`; its source-suite rerun is `45639386541`.
+
+## Next steps
+1. Confirm the corrected source-test run `45639386541` passes Windows and Ubuntu.
+2. Monitor combined Qwen/Genesis run `45639088515`; inspect the hash report, the short smoke artifact, the Genesis progress logs, the completed 31-verse MP3 and cue JSON, and both artifact hashes.
+3. Fix any real ChapterWorker/Qwen/FFmpeg issue evidenced by that run; do not substitute synthetic audio.
+4. If Genesis passes, compare listening/voice characteristics and measure duration/RSS/RTF; then run a later chapter to check narrator/God voice prompt persistence and recurring identity.
+5. Proceed to a genuine native Windows package build with the pinned models and verified FFmpeg, then clean-environment/offline/USB relocation tests.
+
+## Release status
+**Still a developer prototype, not ready for customer testing.** Genuine Qwen short-form CPU speech and real model hashes are now verified. The real 31-verse Genesis chapter pipeline, subjective listening QA, Windows packaged app acceptance, offline playback, USB relocation, long-run recovery, complete Bible generation, target-PC performance and final legal/source-obligation review remain open.
+
+---
+
 # Continuation update — 2026-11-25 (first genuine Qwen CPU speech passed; Genesis 1 harness added)
 
 This is the newest recovery note. Earlier checkpoints are retained below.
