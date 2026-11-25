@@ -23,9 +23,10 @@ This is the newest recovery checkpoint. It supersedes any earlier statement that
 
 ## Current CI state
 - The first Ubuntu run of the new smoke-WAV test exposed one test-only precision mismatch: the report rounds durations to milliseconds, while the test compared against an unrounded sample duration. The other tests in that run passed (151 passed, 4 skipped); I corrected the assertion to allow the documented millisecond rounding.
-- Cross-platform rerun 45661437815 (commit 32c48c6451b2d1c4190d7798bab73b33b7a5414c) is in progress.
-- Native Windows package rerun 45661437869 at the same commit is in progress. It has reached the actual package build/acceptance step; Whisper verification follows that step.
-- Earlier package run 45661097956 (commit b310f282fb373c52c96de108074fff8b6a421d6f) is also running the new Windows transcript-verification workflow. No speech-transcript pass is claimed yet.
+- Cross-platform run 45661437815 (commit 32c48c6451b2d1c4190d7798bab73b33b7a5414c) has passed Ubuntu 24.04 / Python 3.13: **152 passed, 4 skipped**. Its Windows / Python 3.12 leg is still executing the native test suite.
+- API compatibility review caught that Whisper tiny.en rejects explicit task/language overrides because it is English-only. The verifier now uses the checkpoint's built-in English transcription defaults, matching its official Transformers example.
+- Latest corrected cross-platform run 45661869132 and latest corrected native Windows package run 45661869168 both target commit 96b23b539dca3475c481b898d895fa2b17340591 and are queued/in progress. The package runner has started setup; real model synthesis and ASR are still pending.
+- Earlier Windows package runs 45661437869 and 45661097956 were started before that final Whisper compatibility correction; they are superseded by run 45661869168. No speech-transcript pass is claimed yet.
 
 ## Release status
 **Developer prototype only—not ready for customer testing.** The speech-completeness check is implemented but awaits its real native Windows result. The user's reported cutoff remains open until the final packaged MP3s are transcribed successfully and the audio is listened to again. Target RTX 2070 Super performance/VRAM, physical USB relocation, long-run stop/recovery, complete 1,189-chapter generation, Bible-wide speaker attribution, subjective listening approval and final license/source review also remain open.
