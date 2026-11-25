@@ -120,3 +120,69 @@ def test_long_form_chapter_transcript_rejects_unrelated_or_too_short_text():
         minimum_similarity=0.70,
     )
     assert result["passed"] is False
+
+def test_long_form_transcriber_uses_whisper_native_long_audio_mode(monkeypatch):
+    import contextlib
+    import sys
+    import types
+
+    import numpy as np
+
+    from tools.verify_chapter_transcript import transcribe_long_audio
+
+    calls = {}
+
+    class FakeProcessor:
+        @classmethod
+        def from_pretrained(cls, model_id, revision):
+            calls["processor_model"] = (model_id, revision)
+            return cls()
+
+        def __call__(self, audio, **kwargs):
+            calls["audio_samples"] = len(audio)
+            calls["processor_kwargs"] = kwargs
+            return {"input_features": "features", "attention_mask": "mask"}
+
+        def batch_decode(self, generated_ids, skip_special_tokens):
+            calls["decoded_ids"] = generated_ids
+            calls["skip_special_tokens"] = skip_special_tokens
+            return ["complete long-form transcript"]
+
+    class FakeModel:
+        @classmethod
+        def from_pretrained(cls, model_id, **kwargs):
+            calls["model_load"] = (model_id, kwargs)
+            return cls()
+
+        def to(self, device):
+            calls["device"] = device
+            return self
+
+        def eval(self):
+            calls["eval"] = True
+            return self
+
+        def generate(self, **kwargs):
+            calls["generate_kwargs"] = kwargs
+            return ["generated-token-ids"]
+
+    fake_torch = types.SimpleNamespace(
+        get_num_threads=lambda: 8,
+        set_num_threads=lambda count: calls.setdefault("torch_threads", count),
+        inference_mode=contextlib.nullcontext,
+    )
+    fake_transformers = types.SimpleNamespace(
+        WhisperForConditionalGeneration=FakeModel,
+        WhisperProcessor=FakeProcessor,
+    )
+    monkeypatch.setitem(sys.modules, "torch", fake_torch)
+    monkeypatch.setitem(sys.modules, "transformers", fake_transformers)
+
+    result = transcribe_long_audio(np.zeros(16000, dtype=np.float32))
+
+    assert result == "complete long-form transcript"
+    assert calls["processor_kwargs"]["truncation"] is False
+    assert calls["processor_kwargs"]["return_attention_mask"] is True
+    assert calls["generate_kwargs"]["return_timestamps"] is True
+    assert calls["generate_kwargs"]["input_features"] == "features"
+    assert calls["generate_kwargs"]["attention_mask"] == "mask"
