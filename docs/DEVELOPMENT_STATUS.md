@@ -1,3 +1,9 @@
+## ADS validation test wording follow-up — 2026-11-24
+
+Adjusted the pre-existing Windows unsafe-path test to recognize the new specific "alternate data streams" rejection message. The Windows-only license ADS test continues asserting that exact text. This is a regression-test expectation change only. Local suite: 126 passed, 2 Windows-only skipped; hosted Windows verification pending.
+
+---
+
 ## Native Windows alternate-data-stream security correction — 2026-11-24
 
 The last hosted Windows suite completed with 125 passed and one failure: NOTICE.txt:stream had become an NTFS alternate data stream invisible to pathlib enumeration. The FFmpeg notice importer now explicitly enumerates Windows streams using FindFirstStreamW/FindNextStreamW across source/staged/final folders and license files, rejecting named streams. Added source-license ADS regression and made raw DOS reserved/path syntax tests work across OSes. Local compileall PASS; full suite **126 passed, 2 skipped**. Native Windows rerun and PowerShell AST check pending.

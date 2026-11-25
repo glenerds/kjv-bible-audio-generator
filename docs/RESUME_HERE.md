@@ -1,3 +1,9 @@
+## ADS validation test wording follow-up
+
+Expanded the existing unsafe-source-name test to accept the new precise diagnostic text "alternate data streams" as well as the prior unsafe/reserved messages. This prevents a correct Windows ADS rejection being marked failed merely because its error is more specific. No product behavior change; local compileall and Linux suite remain 126 passed, 2 Windows-only skipped. Hosted Windows run pending.
+
+---
+
 ## Latest Windows security correction — alternate data streams
 
 Native Windows suite was 125 passed / 1 failed: FFmpeg notice import accepted NOTICE.txt:stream, because NTFS ADS is hidden from normal pathlib enumeration. Added FindFirstStreamW/FindNextStreamW/FindClose inspection on source, staged and installed notice folders plus source/staged/final license files; all named streams are rejected. Added Windows license-ADS test and platform-independent unsafe raw-name tests. Local compileall PASS; 126 passed, 2 Windows-only skipped. Await the next hosted Windows suite and PowerShell parser.

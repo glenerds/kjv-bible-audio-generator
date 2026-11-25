@@ -1,3 +1,11 @@
+# Engineering Checkpoint — 0.4.11: ADS rejection test assertion follow-up
+
+Date: 2026-11-24
+
+The Windows-specific NTFS stream enumeration now emits "alternate data streams" for the detected named stream. The old unsafe-path regression only recognized unsafe/reserved/manifest.json text. Expanded the expected diagnostic tokens so a correct ADS rejection does not fail the test based only on message wording. The separate Windows-only license ADS test verifies the exact new error. Product behavior unchanged. Local Linux: compileall PASS; 126 passed, 2 Windows-only skipped. Latest hosted Windows full suite still pending.
+
+---
+
 # Engineering Checkpoint — 0.4.11: native Windows alternate data stream validation
 
 Date: 2026-11-24

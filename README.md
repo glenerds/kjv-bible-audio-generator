@@ -1,3 +1,11 @@
+# Follow-up test assertion — 2026-11-24
+
+The Windows ADS enumerator reports a precise error phrase ("alternate data streams"). The pre-existing invalid-source-path test's accepted error tokens were only "unsafe", "reserved" and "manifest.json", which would make the Windows ADS case fail on the assertion text even when the importer correctly rejects the source. Expanded the assertion's accepted diagnostic tokens to include "alternate data streams"; the separate Windows-only license ADS test still checks the exact phrase. No change to product behavior.
+
+Local Linux compileall PASS; 126 passed, 2 Windows-only skips. New hosted Windows run is pending and remains authoritative for the NTFS API path.
+
+---
+
 # Native Windows ADS validation fix — 2026-11-24
 
 The latest hosted Windows result for commit 1933c89 was **125 passed, 1 failed**. The failure was the FFmpeg notice import test for NOTICE.txt:stream: ordinary directory enumeration did not expose the NTFS alternate data stream, so the import succeeded when it should have failed closed. Ubuntu passed the same code.

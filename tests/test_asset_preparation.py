@@ -381,7 +381,7 @@ def test_ffmpeg_notice_import_rejects_windows_unsafe_and_reserved_source_paths(t
             text=True,
         )
         assert result.returncode == 2, (source_name, result.stdout, result.stderr)
-        assert any(token in result.stderr.lower() for token in ("unsafe", "reserved", "manifest.json")), (source_name, result.stderr)
+        assert any(token in result.stderr.lower() for token in ("unsafe", "reserved", "manifest.json", "alternate data streams")), (source_name, result.stderr)
         assert not (licenses / "FFMPEG_DEPENDENCY_NOTICES").exists()
 
 
