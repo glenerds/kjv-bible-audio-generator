@@ -1,0 +1,56 @@
+name: Native Windows portable package acceptance
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/windows-package-acceptance.yml"
+      - "tools/build_windows.ps1"
+      - "tools/prepare_assets.ps1"
+      - "tools/ensure_ffmpeg.ps1"
+      - "tools/run_ffmpeg_candidate_audit.ps1"
+      - "tools/windows_package_acceptance.ps1"
+      - "tools/qwen_asset_integrity.py"
+      - "src/kjv_audio_generator/__main__.py"
+      - "src/kjv_audio_generator/runtime.py"
+      - "tools/entrypoint.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows-portable-package:
+    name: Build, self-test, synthesize and relocate the actual Windows app
+    runs-on: windows-latest
+    timeout-minutes: 180
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+
+      - name: Set up Python 3.12 x64
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          architecture: x64
+          cache: pip
+
+      - name: Show initial disk and memory
+        shell: pwsh
+        run: |
+          Get-PSDrive -PSProvider FileSystem | Format-Table -AutoSize
+          Get-CimInstance Win32_ComputerSystem | Select-Object TotalPhysicalMemory
+          Get-CimInstance Win32_Processor | Select-Object Name, NumberOfCores, NumberOfLogicalProcessors
+
+      - name: Build and exercise actual portable Windows package
+        shell: pwsh
+        run: ./tools/windows_package_acceptance.ps1 -TorchVariant cu128
+
+      - name: Upload compact Windows package acceptance evidence
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-portable-package-acceptance
+          path: artifacts/windows-package-acceptance/**
+          if-no-files-found: error
+          retention-days: 14
