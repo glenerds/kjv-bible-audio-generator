@@ -1,3 +1,18 @@
+# CI follow-up — 2026-11-24 (FFmpeg test prerequisite)
+
+The corrected 0.4.11 CI run installed CPU PyTorch successfully. The Ubuntu runner compiled the source and reached the full test suite: **110 passed, 12 failed, 2 skipped**. The failures all trace to the test host lacking the `ffmpeg` executable; the audio integration tests explicitly require it, and some worker tests fail when the encoder cannot be launched. No Qwen inference was performed.
+
+The workflow now installs FFmpeg strictly as a **CI test dependency**:
+- Windows runner: Chocolatey installs FFmpeg and verifies `ffmpeg -version`.
+- Ubuntu runner: apt installs `ffmpeg` alongside Xvfb.
+- A regression test asserts both OS provisioning steps remain in the workflow.
+
+This does **not** approve the Chocolatey/distro FFmpeg binaries for inclusion in the customer's app. The production bundle still requires a separately pinned Windows LGPL build, binary/source/license notice evidence, `libmp3lame` confirmation and a WAV→MP3→decode probe.
+
+The second-run Windows job is still completing the CPU PyTorch installation at the time of this update. Recheck both jobs after this workflow change.
+
+---
+
 # Engineering log — 2026-11-24 (0.4.11: cross-platform CI and missing test dependency)
 
 The user asked me to continue direct engineering. This entry records what was verified and fixed in this pass.

@@ -1,3 +1,9 @@
+## CI follow-up — 2026-11-24: audio tests need FFmpeg in the runner
+
+The 0.4.11 hosted Linux runner successfully installed CPU PyTorch and compiled source, then the full suite reported 110 passed, 12 failed, 2 skipped. All 12 failures resulted from `ffmpeg` not being installed on the runner. Added CI-only installation on Windows via Chocolatey and Ubuntu via apt, plus a test asserting the workflow provisions FFmpeg. This test FFmpeg is not the unapproved production binary. Wait for the next hosted run to verify the full Windows and Linux suites.
+
+---
+
 ## Latest continuation — 2026-11-24: cross-platform CI and test dependency fix
 
 - Canonical 0.4.10 archive SHA-256 verified: `4c9dffa08d75e8ee2efb60f9fa561311d3501f515dbf650e233f15ebd2cc07f9`. The 73-file ZIP passes integrity checks; all 72 non-README archive files match the public GitHub tree exactly. README difference is intentional; the repo has three additional AI-review files.

@@ -489,3 +489,12 @@ def test_developer_test_dependencies_include_the_pytorch_adapter_runtime():
     dev_section = pyproject.split("dev = [", 1)[1].split("]", 1)[0]
     assert "pytest>=8" in dev_section
     assert "torch==2.10.0" in dev_section
+
+
+
+def test_cross_platform_ci_installs_ffmpeg_before_running_audio_integration_tests():
+    root = Path(__file__).resolve().parents[1]
+    workflow = (root / ".github" / "workflows" / "tests.yml").read_text(encoding="utf-8")
+    assert "choco install ffmpeg --yes --no-progress" in workflow
+    assert "sudo apt-get install --yes xvfb ffmpeg" in workflow
+    assert "FFmpeg for audio integration tests (CI only)" in workflow

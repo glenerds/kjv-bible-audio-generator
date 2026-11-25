@@ -1,3 +1,9 @@
+## CI follow-up — 2026-11-24
+
+The corrected PyTorch test dependency got the Ubuntu CI job past test collection. Its next failure was environmental: the job had no FFmpeg executable, while 12 tests deliberately require FFmpeg for actual audio assembly/worker flows. Result: 110 passed, 12 failed, 2 skipped; all reported failures trace to missing FFmpeg. CI now installs FFmpeg on Windows (Chocolatey) and Linux (apt) solely to satisfy test prerequisites; a regression test asserts both install commands. This does not establish the production FFmpeg candidate/license gate. New hosted run result pending.
+
+---
+
 ## 0.4.11 validation update — 2026-11-24
 
 A clean install on both hosted Windows and Ubuntu initially exposed a missing development dependency: `tests/test_qwen_adapter.py` imports PyTorch, but `torch` was absent from the `dev` extra. This was fixed by declaring `torch==2.10.0` in the dev dependencies, preinstalling the CPU wheel in CI, bumping the project version to 0.4.11 and adding a regression test. The new hosted rerun must pass before the status can say the Windows suite passed.
