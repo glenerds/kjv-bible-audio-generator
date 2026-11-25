@@ -1,40 +1,32 @@
-# Continuation checkpoint — 2026-11-25 (full Qwen Genesis passed; license-notice tests green; new package build running)
+# Continuation checkpoint — 2026-11-25 (cuDNN version corrected to 9.10.2.21; Windows package rebuild active)
 
-The real-Qwen Genesis 1 chapter passed long-form Whisper; the cross-chapter narrator-reuse test passed; and the synthetic worker simulation completed the full 1,189-chapter / 31,102-verse structure. The latest Windows and Ubuntu suites now include the Tokenizers Apache notice check and the builder's fail-closed requirement. A new native Windows package run is rebuilding the application with that notice so its final manifest can be inspected.
+The real-Qwen Genesis 1 chapter passed long-form Whisper; the Genesis 1–2 narrator-reuse test passed; and the synthetic full-Bible worker simulation passed across 66 books, 1,189 chapters and 31,102 verses. Two Windows portable-app runs have passed the short-sentence Whisper check on original and relocated MP3s. Current work is a corrected NVIDIA cuDNN license/notice bundle for the actual PyTorch 2.10.0 CUDA 12.8 wheel.
 
-## Latest test result for the Tokenizers notice safeguards
-- Cross-platform source workflow **45713548498** (run 140) completed successfully:
-  - Windows 11 / Python 3.12: **169 passed, 1 skipped** (headless GUI); all five PowerShell build/helper scripts parsed successfully.
-  - Ubuntu 24.04 / Python 3.13: **166 passed, 4 skipped** (NTFS/Windows-only tests).
-- The passing suite covers:
-  - Immutable upstream Tokenizers 0.22.2 Apache-2.0 license file and its Git blob hash.
-  - `tools/prepare_assets.ps1` downloading the pinned license from upstream commit `f383101a26663708484cac0727792aad74f78234` and checking blob SHA `261eeb9e9f8b2b4b0d119366dda99c6fd7d35c64`.
-  - `tools/build_windows.ps1` refusing to package unless `LICENSES/TOKENIZERS_APACHE_2.0.txt` exists.
-- The notice itself is 11,357 bytes and its repository blob SHA matches the pinned upstream license file.
+## Correct cuDNN version for the shipped PyTorch wheel
+- The package build installs `torch==2.10.0` from the official `cu128` wheel index. The PyTorch 2.10 CUDA build matrix identifies **cuDNN 9.10.2.21** for CUDA 12.8; see the pinned upstream source snapshot: https://github.com/pytorch/pytorch/blob/9d06effee01af3b8a06988b18cc724037ca03940/RELEASE.md.
+- I initially followed the older `v2.10.0/.ci/pytorch/windows/internal/cuda_install.bat` selection (9.7.0.66), then found that it does not represent the published CUDA 12.8 wheel's cuDNN runtime. That incorrect 9.7 pin has been superseded. Do **not** use its generated notice files for the actual frozen cu128 app.
+- `tools/prepare_assets.ps1` now fetches the matching versioned **cuDNN 9.10.2** EULA and acknowledgements pages, records their SHA-256 values and URLs in `LICENSES/NVIDIA_CUDNN_NOTICE_MANIFEST.json`, and labels the archive/runtime pairing as `cudnn-windows-x86_64-9.10.2.21_cuda12-archive.zip`.
+- `tools/build_windows.ps1` now requires `CUDNN_9.10.2.21_EULA.html`, `CUDNN_9.10.2.21_ACKNOWLEDGEMENTS.html` and the manifest before packaging. For `cu128`, it also checks that `torch.backends.cudnn.version()` reports the **9.10.2 runtime family** before freezing. That API does not expose the packaging suffix `.21`; the exact 9.10.2.21 pairing comes from the PyTorch wheel release matrix.
+- The 9.10.2 EULA explicitly describes distribution of runtime `.so` and `.dll` files subject to the parent SDK agreement conditions. The versioned acknowledgements include binary redistribution notices for University of Tennessee, University of California/Berkeley and Facebook AI Research. This is an engineering notice check, **not legal clearance**.
 
-## Current Windows package rebuild
-- Package acceptance **45713521026** (run 30) includes the updated asset-preparation script and builder-required-notice check. It is still in the main native Windows build/acceptance step; no failure has been reported, but the final application/evidence artifacts are not uploaded yet.
-- Earlier run 28 remains the last fully completed native Windows package. It passed the actual build, Qwen CPU smoke, simulated `Z:` relocation, MP3 decode and two exact full-sentence Whisper results (original and relocated). App artifact ID `15055775380` and evidence ID `15053954142`.
-- Do not call run 30 a pass until the new evidence artifact is available and `portable-package-manifest.json` includes `_internal/LICENSES/TOKENIZERS_APACHE_2.0.txt` with the expected byte size.
+## Current CI verification
+- Source run **45715603069** (run 156) at commit `9231023594aaf6561282fc83b7f99c766e44011d` has passed Ubuntu / Python 3.13; Windows / Python 3.12 is finishing its full suite. It includes the cuDNN 9.10.2.21 notice and runtime-gate regression tests.
+- A fresh source run **45715753994** (run 157) is also active at the latest documentation checkpoint; it will revalidate the same code.
+- Native Windows package run **45715556182** (run 37) is running at code commit `a18dfb7054659885a4ce08aed21eca84e9ee499c`, which includes the 9.10.2.21 asset preparation, package-required notice files and cuDNN runtime-family check. No failure has been reported, but the package/evidence upload and actual manifest check are still pending.
+- Older 9.7 test runs 154/155 failed only because an interim source-test assertion still expected the superseded 9.7 version. Those failures are superseded by the corrected 9.10.2.21 test in run 156; do not cite them as an application failure.
+- The Tokenizers Apache-2.0 notice remains pinned and required by the builder. The earlier run 140 tests passed: Windows 169 passed/1 headless skip; Ubuntu 166 passed/4 Windows-only skips.
 
 ## Verified real speech and full-Bible processing
-- Genuine-Qwen run **45679773309** (run 15) passed full Genesis 1 generation and long-form Whisper:
-  - **31 verses**, 33 source-validated cue segments; **273.84 sec** audio.
-  - Whisper: **797 expected words / 793 recognized**, **97.61%** word-sequence similarity; opening and ending phrases present.
-  - Transcript is not perfect and still needs human listening approval.
-  - [Genesis 1 MP3 and transcript evidence](https://github.com/glenerds/kjv-bible-audio-generator/actions/runs/45679773309).
-- The same real-Qwen run passed the independent Genesis 1–2 narrator continuity check: 2 chapters complete, 1 voice-preparation batch, identical narrator fingerprint and prompt hash across the boundary.
-- Synthetic full-Bible worker run **45683750987** passed on Windows and Ubuntu:
-  - Windows: **168 passed, 1 skipped**; Ubuntu: **164 passed, 4 skipped**.
-  - All **66 books, 1,189 chapters and 31,102 verse records** traversed the actual worker/queue/report path, with 1,189 completed placeholder outputs/cues and 31,102 cue segments.
-  - This deliberately used the test-only synthetic backend and a placeholder assembler; it does not claim real Qwen audio for all chapters.
+- Genuine-Qwen run **45679773309** (run 15) passed full Genesis 1 generation and long-form Whisper: **31 verses**, 33 source-validated cue segments, 273.84-second MP3, **797 expected / 793 recognized words**, **97.61%** word-sequence similarity, and both opening and final phrase detected. ASR has a few substitutions; human listening is still required. [Genesis 1 MP3 and transcript evidence](https://github.com/glenerds/kjv-bible-audio-generator/actions/runs/45679773309).
+- The same genuine-Qwen run passed Genesis 1–2 narrator continuity: two completed chapters, one voice-preparation batch and identical narrator profile/prompt fingerprints across the chapter boundary.
+- Synthetic worker run **45683750987** passed the complete KJV processing structure: 66 books, 1,189 chapters, 31,102 verse records, 1,189 completed queue jobs, 1,189 placeholder outputs/cues and 31,102 cue segments. This used the test-only synthetic backend and a placeholder assembler—not real Qwen speech.
+- Windows package run 28 **45679773296** passed native package build, Qwen CPU smoke, FFmpeg decode, simulated `Z:` relocation and exact Whisper transcriptions of both original and relocated short MP3s (100% word match). App artifact **15055775380**; evidence artifact **15053954142**. The relocation was `subst` on NTFS, not physical USB.
 
-## Distribution review — still blocked
+## Distribution and release blockers
 - Audit: [`docs/RELEASE_DISTRIBUTION_LICENSE_AUDIT_2026-11-25.md`](docs/RELEASE_DISTRIBUTION_LICENSE_AUDIT_2026-11-25.md).
-- There is no root `LICENSE` and no `project.license` in `pyproject.toml`; the project owner must choose its own code license. Do not invent one.
-- The run-28 package contains CUDA DLLs for CUDA runtime, cuBLAS/cuBLASLt, cuFFT, cuRAND, cuSPARSE, NVRTC/NVRTC built-ins, NVJitLink and cuDNN 9. NVIDIA's [CUDA 12.8.2 EULA](https://docs.nvidia.com/cuda/archive/12.8.2/eula/index.html) lists several CUDA Toolkit components as distributable only subject to its conditions; cuDNN is not listed in the Attachment A text inspected and must be checked against its separate governing terms. This is not legal clearance.
-- FFmpeg's LGPL license/build manifest and 35 upstream documentation files are present and hash-checked, but a full enabled-library license/source/relinking audit remains open.
-- **Developer prototype only; not cleared for customer or commercial distribution.** Human listening, RTX 2070 Super CUDA/VRAM, physical USB, long-run recovery, all-1,189-chapter real-Qwen generation, KJV speaker attribution, app license selection and third-party legal review remain outstanding.
+- No root `LICENSE` and no `project.license` exists in `pyproject.toml`; the owner must choose the project's license before redistribution.
+- NVIDIA CUDA and cuDNN conditions and notices now have a version-specific engineering inventory, but all bundled CUDA DLLs and third-party obligations still need human legal review. FFmpeg's LGPL source/relinking and enabled-library notice coverage also remain open.
+- **Developer prototype only—not cleared for customer or commercial distribution.** Still open: user listening approval, fresh package verification that the cuDNN/Tokenizers notices appear in the final manifest, RTX 2070 Super CUDA/VRAM tests, physical USB, long-run stop/recovery, real-Qwen generation of all 1,189 chapters, KJV speaker-attribution review and final license/source review.
 
 
 ---
