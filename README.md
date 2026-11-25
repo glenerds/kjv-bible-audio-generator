@@ -1,3 +1,28 @@
+# Continuation checkpoint — 2026-11-25 (model residency test green; package size measurement pending)
+
+This is the newest recovery note.
+
+## Latest source results
+- Current source head before this README update: `dd0dbf4dc250ebcb6979a4207beeaaabbb9ac2c9`.
+- Cross-platform run `45660386881` passed:
+  - Windows 11 / Python 3.12: **151 passed, 1 skipped** (the GUI window test is skipped because the hosted runner has no graphical desktop). All five PowerShell scripts parsed.
+  - Ubuntu 24.04 / Python 3.13: **148 passed, 4 skipped** (Windows-specific tests).
+- Added `test_qwen_releases_voice_design_before_loading_base_to_bound_vram`. It verifies the production backend releases the VoiceDesign model before loading Base, and releases Base before loading VoiceDesign on a future profile refresh. The test passed on both platforms.
+- On CUDA, the backend loads the active model in FP16. Only one of the two 1.7B Qwen models is kept resident at a time. This is specifically intended to reduce peak GPU memory for 8 GB-class cards; an actual RTX 2070 Super run is still required before confirming real-world VRAM headroom/performance.
+
+## Windows portable build and payload size
+- Native Windows package acceptance run `45653137050` passed: all five preflight checks, genuine Qwen CPU audio smoke, bundled FFmpeg decode, original app relocation through `Z:`, relocated self-test, relocated Qwen speech and relocated MP3 decode.
+- Evidence artifact `15043870816` was downloaded and verified (13 files; ZIP integrity passed). It contains reports, diagnostic logs, original/relocated MP3s and timing cues, not the full app payload.
+- New package run `45658060503` now measures the file count and total bytes for the portable app, records a per-file manifest, removes temporary acceptance output folders, and restores the tested app to `dist` after relocation checks. The run is still active; no payload size/manifest is claimed until the artifact is available.
+
+## Real Qwen full chapter and cross-chapter continuity
+- Workflow run `45655573454` passed the pinned model-download/hash verification and the offline short real-speech smoke. It is processing the full 31-verse Genesis 1 chapter now; the two-chapter narrator prompt-hash test follows it.
+- The cross-chapter fixture uses exact KJV Genesis 1:1 and Genesis 2:23 text. It asserts one batch profile preparation, same narrator profile fingerprint and identical narrator prompt-file SHA-256 at both chapter uses, two decodable MP3s, and exact cue text. Its real Qwen result is still pending.
+
+## Release status
+**Developer prototype only—not ready for customer testing.** The native Windows CLI and real Qwen CPU smoke now pass; the app payload size, full Genesis 1 run on the current workflow, cross-chapter voice continuity, real RTX GPU test, physical USB operation, long-run recovery, full 1,189 chapters, subjective listening QA, Bible-wide speaker attribution and final license/source review remain open.
+
+---
 # Continuation checkpoint — 2026-11-25 (packaged smoke speech completeness issue found)
 
 This is the newest recovery note and supersedes earlier statements that the Windows audio smoke fully passed.
