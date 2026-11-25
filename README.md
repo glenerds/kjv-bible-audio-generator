@@ -1,3 +1,17 @@
+# Windows sparse-file fix — 2026-11-24 (FSCTL_SET_ZERO_DATA)
+
+The isolated Windows allocation probe produced the exact reason the earlier FSCTL_SET_SPARSE-only fixture still failed: the 3.5 GB logical sparse file was marked sparse, but `GetCompressedFileSizeW` still measured 147,324,928 bytes allocated.
+
+The fixture now:
+1. Marks the NTFS test file sparse with `FSCTL_SET_SPARSE`.
+2. Extends its logical EOF to the desired model-weight size.
+3. Calls `FSCTL_SET_ZERO_DATA` with a `FILE_ZERO_DATA_INFORMATION` range of `[0, size)` to ask NTFS to deallocate the zeroed sparse range.
+4. The existing Windows-only allocation test requires the sparse attribute, the correct logical size, and physical allocation below 1 MiB for both the 3.5 GB and 650 MB fixtures.
+
+Microsoft documents that ordinary zero writes can allocate clusters in sparse files; `FSCTL_SET_ZERO_DATA` is the operation that can deallocate sparse zero ranges. The exact Windows hosted result is pending. Linux full-suite regression remains 125 passed, with the Windows-only probe skipped.
+
+---
+
 # Windows sparse-file diagnosis — 2026-11-24 (pre-fix engineering note)
 
 The dedicated Windows allocation probe at commit `86149ded45c23eaff32abaa6629b1a8926d7b820` ran on GitHub's Windows/Python 3.12 runner and returned a concrete result:

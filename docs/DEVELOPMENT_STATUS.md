@@ -1,3 +1,9 @@
+## Windows sparse-fixture correction — 2026-11-24
+
+The isolated Windows test proved FSCTL_SET_SPARSE set the sparse attribute, but an ordinary truncate still allocated 147,324,928 bytes for a 3.5 GB logical file. Updated the fixture to call FSCTL_SET_ZERO_DATA over the entire logical zero range after EOF extension. The dedicated Windows test checks both model placeholders for <1 MiB physical allocation. Latest Windows hosted verification pending; Linux remains 125 passing, 1 Windows-only skip.
+
+---
+
 ## Windows CI diagnostic follow-up — 2026-11-24
 
 The two latest Windows attempts did not produce usable test logs: GitHub marked the job failed while its test step remained "in_progress", and the log archive lookup returned BlobNotFound. Dependency installation and compileall passed; Ubuntu's full 125-test run passed. Added an explicit Windows-only sparse-fixture check (NTFS sparse attribute + GetCompressedFileSizeW allocation) as a separate step before the full Windows suite. The result will clarify whether the large sparse model fixtures still consume disk or whether another runner failure exists. Windows acceptance remains unverified.

@@ -16,16 +16,15 @@ def _truncate_sparse_file(target, size):
     """Create a large logical weight file without reserving its full disk size."""
     with target.open("w+b") as handle:
         if sys.platform == "win32":
-            # pathlib.Path.truncate() creates sparse files on the Linux CI
-            # filesystem, but a normal Windows truncate can allocate every
-            # zero byte. Mark the NTFS file sparse before extending it so
-            # repeated 3.5 GB / 650 MB fake model fixtures do not fill the
-            # hosted runner's system disk.
-            import ctypes
+            # Mark the NTFS file sparse before extending it. SetEndOfFile /
+            # ordinary zero writes can still allocate physical clusters in an
+            # already-sparse file, so release the newly zeroed range explicitly
+            # with FSCTL_SET_ZERO_DATA after setting the logical file length.
             import msvcrt
             from ctypes import wintypes
 
             fsctl_set_sparse = 0x000900C4  # FSCTL_SET_SPARSE from winioctl.h
+            fsctl_set_zero_data = 0x000980C8  # FSCTL_SET_ZERO_DATA from winioctl.h
             kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
             device_io_control = kernel32.DeviceIoControl
             device_io_control.argtypes = [
@@ -41,7 +40,7 @@ def _truncate_sparse_file(target, size):
             device_io_control.restype = wintypes.BOOL
             bytes_returned = wintypes.DWORD(0)
             handle_value = wintypes.HANDLE(msvcrt.get_osfhandle(handle.fileno()))
-            ok = device_io_control(
+            marked_sparse = device_io_control(
                 handle_value,
                 fsctl_set_sparse,
                 None,
@@ -51,9 +50,32 @@ def _truncate_sparse_file(target, size):
                 ctypes.byref(bytes_returned),
                 None,
             )
-            if not ok:
+            if not marked_sparse:
                 raise ctypes.WinError(ctypes.get_last_error())
-        handle.truncate(size)
+            handle.truncate(size)
+            handle.flush()
+
+            class FileZeroDataInformation(ctypes.Structure):
+                _fields_ = [
+                    ("FileOffset", ctypes.c_longlong),
+                    ("BeyondFinalZero", ctypes.c_longlong),
+                ]
+
+            zero_range = FileZeroDataInformation(0, size)
+            deallocated = device_io_control(
+                handle_value,
+                fsctl_set_zero_data,
+                ctypes.byref(zero_range),
+                ctypes.sizeof(zero_range),
+                None,
+                0,
+                ctypes.byref(bytes_returned),
+                None,
+            )
+            if not deallocated:
+                raise ctypes.WinError(ctypes.get_last_error())
+        else:
+            handle.truncate(size)
 
 
 def make_fake_model_folder(path):

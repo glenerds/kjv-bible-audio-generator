@@ -1,3 +1,9 @@
+## Windows sparse-fixture correction — FSCTL_SET_ZERO_DATA
+
+The focused NTFS test found that FSCTL_SET_SPARSE alone left 147,324,928 bytes allocated for the 3.5 GB fake file. Added FSCTL_SET_ZERO_DATA over the full logical file range after setting EOF; this is the filesystem operation Microsoft documents for zeroing ranges while allowing sparse NTFS deallocation. The focused test requires <1 MiB physical allocation for both model-weight placeholders. Await the next Windows run; Linux suite previously passed 125 tests and skips the Windows-only allocation check.
+
+---
+
 ## Windows CI diagnostic follow-up — explicit sparse allocation test
 
 The latest Windows job records are marked failed while the pytest step remains "in_progress"; the log-storage endpoint reports BlobNotFound. The exact failing assertion is therefore unknown. Ubuntu passed 125 tests. Added a Windows-only test that validates the sparse file attribute and actual on-disk allocation with GetCompressedFileSizeW, and an isolated Windows workflow step runs that test before the full suite. Linux skips this NTFS-only test. Do not claim the Windows fixture fix is verified until this focused step and the full Windows suite complete.
