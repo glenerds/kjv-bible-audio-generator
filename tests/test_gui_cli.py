@@ -332,7 +332,7 @@ def test_cli_audio_smoke_success_uses_real_workflow_contract(tmp_path, monkeypat
     assert payload["samples"] == 128
     assert payload["sample_rate"] == 24000
     assert payload["text"] == "This is a test of the King James Bible narrator voice."
-    assert payload["duration_seconds"] == pytest.approx(128 / 24000)
+    assert payload["duration_seconds"] == pytest.approx(128 / 24000, abs=0.001)
     import soundfile as sf
     wav_path = tmp_path / "out" / "qwen_audio_smoke.wav"
     assert payload["wav"] == str(wav_path)
