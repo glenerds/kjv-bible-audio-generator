@@ -3,6 +3,7 @@ from __future__ import annotations
 import sys
 import types
 import ctypes
+from pathlib import Path
 
 import numpy as np
 import pytest
