@@ -5,6 +5,15 @@ import sys
 def test_asset_preparation_pins_qwen_models_and_checks_all_required_files():
     root = Path(__file__).resolve().parents[1]
     script = (root / "tools" / "prepare_assets.ps1").read_text(encoding="utf-8")
+    helper = (root / "tools" / "qwen_asset_integrity.py").read_text(encoding="utf-8")
+    assert "report --models-root" in script
+    assert "qwen_asset_integrity.py" in script
+    for token in (
+        "391e8db219f292c515297cdceeb43e4eae67cdde35fa57e79a6a8a532fca0522",
+        "38fc7fc51c5e776e840414b6fd443962e9411b9654888fd7913e4da643cb857c",
+        "836b7b357f5ea43e889936a3709af68dfe3751881acefe4ecf0dbd30ba571258",
+    ):
+        assert token in helper
     for token in (
         "Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign",
         "5ecdb67327fd37bb2e042aab12ff7391903235d3",
@@ -49,6 +58,9 @@ def test_windows_build_prepares_pinned_assets_before_pyinstaller():
     assert "KJV_QWEN_ASSET_MANIFEST.json" in script
     assert "speech_tokenizer_config_sha256" in script
     assert "Pinned Qwen model files no longer match" in script
+    assert "qwen_asset_integrity.py" in script
+    assert "verify --models-root $Models --manifest $AssetManifestPath" in script
+    assert "Pinned Qwen weight SHA-256 or manifest verification failed" in script
 
 
 def test_windows_build_requires_pinned_python_and_explicit_torch_variant():
