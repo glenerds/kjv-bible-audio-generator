@@ -31,6 +31,80 @@ def _reject_symlinks(root: Path, description: str) -> None:
                 raise ValueError(f"Symlinks are not permitted in {description}: {path}")
 
 
+
+
+def _reject_alternate_data_streams(root: Path, description: str) -> None:
+    """Reject NTFS alternate data streams, which normal Path listings hide."""
+    if os.name != "nt":
+        return
+
+    import ctypes
+    from ctypes import wintypes
+
+    class Win32FindStreamData(ctypes.Structure):
+        _fields_ = [
+            ("StreamSize", ctypes.c_longlong),
+            ("cStreamName", wintypes.WCHAR * (260 + 36)),
+        ]
+
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    find_first = kernel32.FindFirstStreamW
+    find_first.argtypes = [
+        wintypes.LPCWSTR,
+        wintypes.DWORD,
+        ctypes.POINTER(Win32FindStreamData),
+        wintypes.DWORD,
+    ]
+    find_first.restype = wintypes.HANDLE
+    find_next = kernel32.FindNextStreamW
+    find_next.argtypes = [wintypes.HANDLE, ctypes.POINTER(Win32FindStreamData)]
+    find_next.restype = wintypes.BOOL
+    find_close = kernel32.FindClose
+    find_close.argtypes = [wintypes.HANDLE]
+    find_close.restype = wintypes.BOOL
+
+    if root.is_file():
+        candidates = (root,)
+    elif root.is_dir():
+        # Directories can also carry named $DATA streams even though they do
+        # not have the default unnamed data stream. Inspect the root and every
+        # descendant, not just regular files.
+        candidates = (root, *root.rglob("*"))
+    else:
+        raise ValueError(f"Cannot inspect alternate data streams in {description}: {root}")
+
+    invalid_handle = ctypes.c_void_p(-1).value
+    # Filesystems without stream support report ERROR_INVALID_PARAMETER;
+    # some report INVALID_FUNCTION / NOT_SUPPORTED instead. Empty directories
+    # report ERROR_HANDLE_EOF because they have no $DATA streams. Other errors
+    # are fail-closed rather than silently skipping stream inspection.
+    unsupported_errors = {1, 50, 87}
+    error_handle_eof = 38
+    for path in candidates:
+        stream_data = Win32FindStreamData()
+        handle = find_first(str(path), 0, ctypes.byref(stream_data), 0)
+        if handle == invalid_handle:
+            error = ctypes.get_last_error()
+            if error in unsupported_errors or error == error_handle_eof:
+                continue
+            raise ctypes.WinError(error)
+        try:
+            while True:
+                stream_name = stream_data.cStreamName
+                if stream_name.casefold() != "::$data":
+                    raise ValueError(
+                        f"Alternate data streams are not permitted in {description}: "
+                        f"{path} ({stream_name})"
+                    )
+                if not find_next(handle, ctypes.byref(stream_data)):
+                    error = ctypes.get_last_error()
+                    if error != error_handle_eof:
+                        raise ctypes.WinError(error)
+                    break
+        finally:
+            find_close(handle)
+
+
 def _validated_relative_path(raw_path: str) -> tuple[PurePosixPath, str]:
     """Validate a manifest path for both POSIX and Windows extraction semantics."""
     if not raw_path or "\\" in raw_path or "\x00" in raw_path:
@@ -70,6 +144,8 @@ def import_notices(source_package: Path, licenses_dir: Path) -> dict[str, Any]:
     if not source_license.is_file():
         raise ValueError(f"FFmpeg package LICENSE.txt is missing: {source_license}")
     _reject_symlinks(source_doc, "FFmpeg source documentation bundle")
+    _reject_alternate_data_streams(source_doc, "FFmpeg source documentation bundle")
+    _reject_alternate_data_streams(source_license, "FFmpeg source license file")
 
     files = sorted(p for p in source_doc.rglob("*") if p.is_file())
     if not files:
@@ -106,6 +182,8 @@ def import_notices(source_package: Path, licenses_dir: Path) -> dict[str, Any]:
         shutil.copytree(source_doc, staged_destination)
         shutil.copy2(source_license, staged_license)
         _reject_symlinks(staged_destination, "staged FFmpeg documentation bundle")
+        _reject_alternate_data_streams(staged_destination, "staged FFmpeg documentation bundle")
+        _reject_alternate_data_streams(staged_license, "staged FFmpeg source license file")
 
         entries = []
         for copied in sorted(p for p in staged_destination.rglob("*") if p.is_file()):
@@ -177,10 +255,12 @@ def verify_notices(licenses_dir: Path) -> dict[str, Any]:
     if not manifest_path.is_file():
         raise ValueError(f"FFmpeg dependency notice manifest is missing: {manifest_path}")
     _reject_symlinks(directory, "FFmpeg documentation bundle")
+    _reject_alternate_data_streams(directory, "FFmpeg documentation bundle")
     if license_file.is_symlink():
         raise ValueError(f"FFMPEG_LICENSE.txt must not be a symlink: {license_file}")
     if not license_file.is_file() or license_file.stat().st_size == 0:
         raise ValueError("FFMPEG_LICENSE.txt is missing or empty")
+    _reject_alternate_data_streams(license_file, "FFmpeg license file")
 
     try:
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))

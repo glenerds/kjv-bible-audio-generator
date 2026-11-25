@@ -1,12 +1,10 @@
-# Engineering Checkpoint — KJV Bible Audio Generator 0.4.11 (NTFS sparse fixture correction)
+# Engineering Checkpoint — 0.4.11: native Windows alternate data stream validation
 
 Date: 2026-11-24
 
-- Latest product package remains version 0.4.11; this change is confined to tests/CI and does not alter app behavior.
-- Windows sparse probe: `FSCTL_SET_SPARSE` marked the file correctly, but NTFS reported 147,324,928 allocated bytes for the 3.5 GB fixture after normal truncate.
-- Microsoft documentation confirms normal zero writes can allocate physical space in sparse files and that `FSCTL_SET_ZERO_DATA` can deallocate zero ranges.
-- Updated test fixture to call `FSCTL_SET_ZERO_DATA` after logical EOF extension with the full `[0, size)` range. Windows allocation test still checks file size, sparse attribute and <1 MiB actual allocation for both the main and speech-tokenizer fake weights.
-- Linux local: compileall PASS; 125 passed, 1 Windows-only test skipped. Windows focused allocation test and full suite pending.
-- Do not claim Windows pass until diagnostic, full test suite and PowerShell parse finish successfully.
-
-No genuine Qwen inference, official model integrity, customer Windows build/playback, production LGPL FFmpeg approval, USB relocation or full-Bible generation has passed.
+- Latest verified package version remains 0.4.11.
+- Native Windows suite for the sparse-fixture correction: 125 passed, 1 failed in 134.73 seconds. Failure was in FFmpeg notice importer accepting a file path with :stream; NTFS ADS is hidden from normal pathlib enumeration.
+- Implemented Windows-only NTFS stream enumeration with FindFirstStreamW/FindNextStreamW/FindClose. Checks source doc tree and license, staged doc tree and license, installed notice tree and license verification. Only ordinary unnamed ::$DATA stream allowed. Known unsupported/no-stream errors are handled; unexpected errors fail closed.
+- Adjusted platform-dependent invalid source path test cases (Windows normalizes/reserves specific names) and added raw validator test plus Windows-only ADS-on-license test.
+- Local Python 3.13 Linux: compileall PASS; **126 passed, 2 skipped** (Windows-only sparse/ADS).
+- Next: check new native Windows Actions run for sparse test, full suite and PowerShell AST parse. No actual Qwen or packaged Windows app acceptance yet.

@@ -1,3 +1,19 @@
+# Native Windows ADS validation fix — 2026-11-24
+
+The latest hosted Windows result for commit 1933c89 was **125 passed, 1 failed**. The failure was the FFmpeg notice import test for NOTICE.txt:stream: ordinary directory enumeration did not expose the NTFS alternate data stream, so the import succeeded when it should have failed closed. Ubuntu passed the same code.
+
+Fix now committed in the source:
+- Added Windows-only NTFS stream enumeration using FindFirstStreamW / FindNextStreamW / FindClose.
+- Inspects the source notice directory (including directories), source license file, staged notice directory and staged license, and the final installed notice directory and license during verification.
+- Allows only the ordinary unnamed ::$DATA stream. Named streams are rejected with a clear validation error.
+- Non-stream-capable file systems return known Windows unsupported/no-stream errors and keep compatibility; unexpected enumeration errors fail closed.
+- Adjusted the source-name test so raw DOS-reserved/trailing-dot strings are validated platform-independently, but not created as real Windows filenames (Win32 normalizes or reserves those names before Python can create them).
+- Added a Windows-only source-license ADS regression test and a cross-platform raw validator regression.
+
+Local verification after fix: compileall PASS; **126 passed, 2 skipped** (the Windows-only sparse and ADS probes are skipped on Linux). The new native Windows Actions result is pending.
+
+---
+
 # Continuation update — 2026-11-24 (pre-work: repair native Windows path validation)
 
 ## Verified starting state

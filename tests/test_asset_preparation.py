@@ -1,4 +1,5 @@
 from pathlib import Path
+import sys
 
 
 def test_asset_preparation_pins_qwen_models_and_checks_all_required_files():
@@ -362,7 +363,13 @@ def test_ffmpeg_notice_import_rejects_windows_unsafe_and_reserved_source_paths(t
 
     root = Path(__file__).resolve().parents[1]
     helper = root / "tools" / "ffmpeg_notices.py"
-    for index, source_name in enumerate(("NOTICE.txt:stream", "manifest.json", "CON.txt", "trailing. ")):
+    source_names = ["NOTICE.txt:stream", "manifest.json"]
+    if sys.platform != "win32":
+        # Win32 normalizes trailing dot/space names and reserves DOS device
+        # names before Python can create these exact path strings. Their raw
+        # spelling is covered by the platform-independent validator test below.
+        source_names.extend(("CON.txt", "trailing. "))
+    for index, source_name in enumerate(source_names):
         package = tmp_path / f"package-{index}"
         (package / "doc").mkdir(parents=True)
         (package / "doc" / source_name).write_text("notice\\n", encoding="utf-8")
@@ -376,6 +383,41 @@ def test_ffmpeg_notice_import_rejects_windows_unsafe_and_reserved_source_paths(t
         assert result.returncode == 2, (source_name, result.stdout, result.stderr)
         assert any(token in result.stderr.lower() for token in ("unsafe", "reserved", "manifest.json")), (source_name, result.stderr)
         assert not (licenses / "FFMPEG_DEPENDENCY_NOTICES").exists()
+
+
+
+
+def test_ffmpeg_notice_path_validator_rejects_windows_unsafe_raw_names():
+    import pytest
+
+    tool = _load_ffmpeg_notice_tool()
+    for raw_name in ("NOTICE.txt:stream", "CON.txt", "NUL.bin", "LPT1.log", "trailing. "):
+        with pytest.raises(ValueError):
+            tool._validated_relative_path(raw_name)
+
+
+def test_ffmpeg_notice_import_rejects_alternate_stream_on_source_license(tmp_path):
+    if sys.platform != "win32":
+        import pytest
+        pytest.skip("NTFS alternate data streams are Windows-only")
+
+    import subprocess
+    import sys as python_sys
+    root = Path(__file__).resolve().parents[1]
+    helper = root / "tools" / "ffmpeg_notices.py"
+    package = tmp_path / "package-with-license-stream"
+    (package / "doc").mkdir(parents=True)
+    (package / "doc" / "README.txt").write_text("notice\n", encoding="utf-8")
+    license_file = package / "LICENSE.txt"
+    license_file.write_text("LGPL license\n", encoding="utf-8")
+    Path(str(license_file) + ":hidden").write_text("not part of the license\n", encoding="utf-8")
+    result = subprocess.run(
+        [python_sys.executable, str(helper), "import", "--source-package", str(package), "--licenses-dir", str(tmp_path / "licenses")],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 2, (result.stdout, result.stderr)
+    assert "alternate data streams" in result.stderr.lower()
 
 
 def _load_ffmpeg_notice_tool():

@@ -1,3 +1,9 @@
+## Latest Windows security correction — alternate data streams
+
+Native Windows suite was 125 passed / 1 failed: FFmpeg notice import accepted NOTICE.txt:stream, because NTFS ADS is hidden from normal pathlib enumeration. Added FindFirstStreamW/FindNextStreamW/FindClose inspection on source, staged and installed notice folders plus source/staged/final license files; all named streams are rejected. Added Windows license-ADS test and platform-independent unsafe raw-name tests. Local compileall PASS; 126 passed, 2 Windows-only skipped. Await the next hosted Windows suite and PowerShell parser.
+
+---
+
 ## Windows sparse-fixture correction — FSCTL_SET_ZERO_DATA
 
 The focused NTFS test found that FSCTL_SET_SPARSE alone left 147,324,928 bytes allocated for the 3.5 GB fake file. Added FSCTL_SET_ZERO_DATA over the full logical file range after setting EOF; this is the filesystem operation Microsoft documents for zeroing ranges while allowing sparse NTFS deallocation. The focused test requires <1 MiB physical allocation for both model-weight placeholders. Await the next Windows run; Linux suite previously passed 125 tests and skips the Windows-only allocation check.

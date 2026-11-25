@@ -1,3 +1,9 @@
+## Native Windows alternate-data-stream security correction — 2026-11-24
+
+The last hosted Windows suite completed with 125 passed and one failure: NOTICE.txt:stream had become an NTFS alternate data stream invisible to pathlib enumeration. The FFmpeg notice importer now explicitly enumerates Windows streams using FindFirstStreamW/FindNextStreamW across source/staged/final folders and license files, rejecting named streams. Added source-license ADS regression and made raw DOS reserved/path syntax tests work across OSes. Local compileall PASS; full suite **126 passed, 2 skipped**. Native Windows rerun and PowerShell AST check pending.
+
+---
+
 ## Windows sparse-fixture correction — 2026-11-24
 
 The isolated Windows test proved FSCTL_SET_SPARSE set the sparse attribute, but an ordinary truncate still allocated 147,324,928 bytes for a 3.5 GB logical file. Updated the fixture to call FSCTL_SET_ZERO_DATA over the entire logical zero range after EOF extension. The dedicated Windows test checks both model placeholders for <1 MiB physical allocation. Latest Windows hosted verification pending; Linux remains 125 passing, 1 Windows-only skip.
