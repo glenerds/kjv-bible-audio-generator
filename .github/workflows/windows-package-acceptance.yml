@@ -5,6 +5,12 @@ on:
     branches: [main]
     paths:
       - ".github/workflows/windows-package-acceptance.yml"
+
+      - "src/kjv_audio_generator/**"
+      - "tools/**/*.ps1"
+      - "tools/**/*.py"
+      - "pyproject.toml"
+      - "tests/test_gui_cli.py"
       - "tools/build_windows.ps1"
       - "tools/prepare_assets.ps1"
       - "tools/ensure_ffmpeg.ps1"

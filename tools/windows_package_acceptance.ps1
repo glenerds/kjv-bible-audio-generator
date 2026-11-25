@@ -15,7 +15,6 @@ $OfflineNames = @('HF_HUB_OFFLINE', 'TRANSFORMERS_OFFLINE', 'HF_DATASETS_OFFLINE
 $PreviousEnv = @{}
 foreach ($Name in $OfflineNames) {
     $PreviousEnv[$Name] = [Environment]::GetEnvironmentVariable($Name, 'Process')
-    [Environment]::SetEnvironmentVariable($Name, '1', 'Process')
 }
 
 New-Item -ItemType Directory -Force -Path $RunRoot, $EvidenceRoot | Out-Null
@@ -31,6 +30,13 @@ try {
     if ($LASTEXITCODE -ne 0 -or -not $?) {
         throw 'The native Windows PyInstaller build script failed.'
     }
+
+    # Asset preparation above needs network access. Only the already-built app
+    # is switched to offline mode, after all pinned models and dependencies exist.
+    foreach ($Name in $OfflineNames) {
+        [Environment]::SetEnvironmentVariable($Name, '1', 'Process')
+    }
+
     if (-not (Test-Path $Executable -PathType Leaf)) {
         throw "The built Windows GUI executable is missing: $Executable"
     }
@@ -97,7 +103,8 @@ try {
         }
     }
     if (-not $DriveLetter) { throw 'Could not find an unused drive letter for the relocation test.' }
-    & $env:ComSpec /c subst $DriveLetter $RelocatedRoot
+    $SubstCommand = 'subst {0} "{1}"' -f $DriveLetter, $RelocatedRoot
+    & $env:ComSpec /c $SubstCommand
     if ($LASTEXITCODE -ne 0) { throw "Could not assign the temporary relocated drive $DriveLetter." }
 
     $RelocatedDriveRoot = $DriveLetter + '\'
@@ -157,7 +164,7 @@ try {
 }
 finally {
     if ($DriveLetter) {
-        & $env:ComSpec /c subst $DriveLetter /D | Out-Null
+        & $env:ComSpec /c "subst $DriveLetter /D" | Out-Null
     }
     Stop-Transcript | Out-Null
     foreach ($Name in $OfflineNames) {

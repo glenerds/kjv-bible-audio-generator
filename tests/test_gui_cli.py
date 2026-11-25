@@ -832,3 +832,16 @@ def test_native_windows_package_acceptance_builds_runs_and_relocates_the_frozen_
         "relocated-audio-smoke-report.json",
     ):
         assert token in script
+
+
+
+def test_windows_package_acceptance_downloads_assets_before_forcing_offline_mode():
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[1]
+    script = (root / "tools" / "windows_package_acceptance.ps1").read_text(encoding="utf-8")
+    build_at = script.index("& $BuildScript -TorchVariant $TorchVariant")
+    offline_at = script.index("[Environment]::SetEnvironmentVariable($Name, '1', 'Process')")
+    self_test_at = script.index("$Executable --self-test")
+    assert build_at < offline_at < self_test_at
+    assert "subst {0}" in script
+    assert "subst $DriveLetter /D" in script
