@@ -126,6 +126,7 @@ $ExpectedFfmpegArchiveBytes = 179056458L
 $ExpectedFfmpegBinarySha256 = '3209f0ba6096189de3f850f65488bdb535177b7e46e0b16e902b3230c5ff74fe'
 $ExpectedFfmpegLicenseSha256 = 'da7eabb7bafdf7d3ae5e9f223aa5bdc1eece45ac569dc21b3b037520b4464768'
 $ExpectedFfmpegSourceCommit = 'b9ebe81995b58cd4e3177a6c0ad5dc2392f7f7fd'
+$ExpectedFfmpegBinaryUrl = 'https://github.com/FFmpeg-Builds/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-lgpl.zip'
 if ($FfmpegManifest.archive_sha256 -ne $ExpectedFfmpegArchiveSha256 -or [long]$FfmpegManifest.archive_bytes -ne $ExpectedFfmpegArchiveBytes) {
     throw 'FFmpeg build manifest does not identify the exact digest-pinned 2026-11-25 archive.'
 }
@@ -135,7 +136,10 @@ if ($FfmpegManifest.binary_sha256 -ne $ExpectedFfmpegBinarySha256) {
 if ($FfmpegManifest.license_sha256 -ne $ExpectedFfmpegLicenseSha256) {
     throw 'FFmpeg license hash in the build manifest is not the pinned candidate license.'
 }
-if ($FfmpegManifest.license_spdx -ne 'LGPL-3.0-or-later' -or $FfmpegManifest.source_url -ne "https://github.com/FFmpeg-Builds/FFmpeg-Builds/tree/$ExpectedFfmpegSourceCommit") {
+if ($FfmpegManifest.license_spdx -ne 'LGPL-3.0-or-later' -or
+    $FfmpegManifest.source_commit -ne $ExpectedFfmpegSourceCommit -or
+    $FfmpegManifest.binary_source_url -ne $ExpectedFfmpegBinaryUrl -or
+    $FfmpegManifest.source_url -ne "https://github.com/FFmpeg-Builds/FFmpeg-Builds/tree/$ExpectedFfmpegSourceCommit") {
     throw 'FFmpeg build manifest source or license identity does not match the pinned candidate.'
 }
 $PinnedActualFfmpegHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $Ffmpeg).Hash.ToLowerInvariant()
@@ -146,7 +150,7 @@ if ($PinnedActualFfmpegHash -ne $ExpectedFfmpegBinarySha256 -or $PinnedActualFfm
 
 $AllowedFfmpegLicenses = @('LGPL-2.1-or-later', 'LGPL-3.0-or-later')
 if ($FfmpegManifest.license_spdx -notin $AllowedFfmpegLicenses) { throw 'FFmpeg manifest must declare LGPL-2.1-or-later or LGPL-3.0-or-later; GPL/nonfree builds are not accepted.' }
-foreach ($Field in @('binary_sha256','version_line','configuration','binary_source_url','source_url','license_file','license_sha256')) {
+foreach ($Field in @('binary_sha256','version_line','configuration','binary_source_url','source_url','source_commit','archive_sha256','archive_bytes','license_file','license_sha256')) {
     if ([string]::IsNullOrWhiteSpace([string]$FfmpegManifest.$Field)) { throw "FFmpeg manifest field is required: $Field" }
 }
 $ActualFfmpegHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $Ffmpeg).Hash.ToLowerInvariant()

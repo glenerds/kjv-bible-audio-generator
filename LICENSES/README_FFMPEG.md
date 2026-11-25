@@ -16,7 +16,7 @@ Do not copy the template to the required manifest without replacing every placeh
 
 The BtbN/FFmpeg-Builds Windows x64 static LGPL archive used for this candidate is 179,056,458 bytes, SHA-256 `78d1f7728fef503b50a6de5866950a96d7e4db0fdb9dfaa47fc2c6691a48370b`, source commit `b9ebe81995b58cd4e3177a6c0ad5dc2392f7f7fd`.
 
-Native Windows GitHub Actions run `45623835915` verified the archive size and hash, ran the executable, checked `-version`, `-L` and the full build configuration, confirmed LGPL version 3, confirmed no `--enable-gpl` or `--enable-nonfree` switches, found `libmp3lame`, and completed a WAV → MP3 encode → decode test.
+Native Windows GitHub Actions run `45623835915` verified the archive size and hash, ran the executable, checked `-version`, `-L` and the full build configuration, confirmed LGPL version 3, confirmed no `--enable-gpl` or `--enable-nonfree` switches, and that the reported configuration included `--enable-version3` and `--enable-libmp3lame`, and completed a WAV → MP3 encode → decode test.
 
 - Version line: `ffmpeg version N-129288-gc81e35cf2b-20261125 Copyright (c) 2000-2026 the FFmpeg developers`.
 - Executable SHA-256: `3209f0ba6096189de3f850f65488bdb535177b7e46e0b16e902b3230c5ff74fe`.

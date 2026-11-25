@@ -1,5 +1,10 @@
 from pathlib import Path
 import sys
+import json
+import os
+import shutil
+import subprocess
+import pytest
 
 
 def test_asset_preparation_pins_qwen_models_and_checks_all_required_files():
@@ -127,8 +132,7 @@ def test_ffmpeg_documentation_records_a_pinned_lgplv3_candidate_without_claiming
     source_commit = "b9ebe81995b58cd4e3177a6c0ad5dc2392f7f7fd"
     assert candidate_sha in readme
     assert source_commit in readme
-    assert "--enable-version3" in readme
-    assert "--enable-libmp3lame" in readme
+    assert "configuration included --enable-version3 and --enable-libmp3lame" in readme
     assert "confirmed both its byte length and SHA-256" in readme
     assert "not an approved app dependency" in readme
 
@@ -602,6 +606,17 @@ def test_windows_builder_uses_the_separate_pinned_ffmpeg_bootstrap_helper():
         "Pinned FFmpeg download/audit script failed",
     ):
         assert token in helper
+    for pinned in (
+        "$ExpectedFfmpegArchiveSha256 = '78d1f7728fef503b50a6de5866950a96d7e4db0fdb9dfaa47fc2c6691a48370b'",
+        "$ExpectedFfmpegBinarySha256 = '3209f0ba6096189de3f850f65488bdb535177b7e46e0b16e902b3230c5ff74fe'",
+        "$ExpectedFfmpegLicenseSha256 = 'da7eabb7bafdf7d3ae5e9f223aa5bdc1eece45ac569dc21b3b037520b4464768'",
+        "$ExpectedFfmpegSourceCommit = 'b9ebe81995b58cd4e3177a6c0ad5dc2392f7f7fd'",
+        "$ExpectedFfmpegBinaryUrl = 'https://github.com/FFmpeg-Builds/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-lgpl.zip'",
+        "$PinnedActualFfmpegHash",
+        "$PinnedActualFfmpegLicenseHash",
+    ):
+        assert pinned in builder
+
 
 
 def _run_powershell_script(executable, script_path, args, env):
@@ -705,3 +720,15 @@ def test_windows_ffmpeg_bootstrap_skips_when_all_inputs_already_exist(tmp_path):
     assert result.returncode == 0, result.stdout + result.stderr
     assert (root / "ffmpeg.exe").read_text(encoding="utf-8") == "existing-executable"
     assert not marker.exists()
+
+def test_ffmpeg_build_manifest_template_matches_the_technically_audited_candidate():
+    root = Path(__file__).resolve().parents[1]
+    manifest = json.loads((root / "LICENSES" / "FFMPEG_BUILD_MANIFEST.template.json").read_text(encoding="utf-8"))
+    assert manifest["version_line"].startswith("ffmpeg version N-129288-gc81e35cf2b-20261125")
+    assert "--enable-version3" in manifest["configuration"]
+    assert "--enable-libmp3lame" in manifest["configuration"]
+    assert "--enable-gpl" not in manifest["configuration"]
+    assert "--enable-nonfree" not in manifest["configuration"]
+    assert manifest["binary_sha256"] == "3209f0ba6096189de3f850f65488bdb535177b7e46e0b16e902b3230c5ff74fe"
+    assert manifest["license_sha256"] == "da7eabb7bafdf7d3ae5e9f223aa5bdc1eece45ac569dc21b3b037520b4464768"
+    assert manifest["archive_sha256"] == "78d1f7728fef503b50a6de5866950a96d7e4db0fdb9dfaa47fc2c6691a48370b"
