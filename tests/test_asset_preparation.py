@@ -605,3 +605,21 @@ def test_pinned_windows_ffmpeg_audit_is_digest_locked_and_runs_real_acceptance_c
         "FFMPEG_BUILD_MANIFEST.json",
     ):
         assert token in script
+
+
+def test_windows_builder_bootstraps_the_pinned_ffmpeg_candidate_when_inputs_are_missing():
+    root = Path(__file__).resolve().parents[1]
+    script = (root / "tools" / "build_windows.ps1").read_text(encoding="utf-8")
+    for token in (
+        "run_ffmpeg_candidate_audit.ps1",
+        "GITHUB_WORKSPACE",
+        "RUNNER_TEMP",
+        "FFMPEG_BUILD_MANIFEST.json",
+        "FFMPEG_DEPENDENCY_NOTICES/MANIFEST.json",
+        "Copy-Item -LiteralPath $AuditedFfmpeg -Destination $Ffmpeg",
+        "The pinned FFmpeg download/audit script failed",
+    ):
+        assert token in script
+    assert "$ActualFfmpegHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $Ffmpeg)" in script
+    assert "$FfmpegLicenseOutput = & $Ffmpeg -L" in script
+    assert "$FfmpegEncoders = & $Ffmpeg -hide_banner -encoders" in script
