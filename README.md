@@ -1,3 +1,37 @@
+# Continuation handoff — 2026-11-25 (real Genesis 1 passed; Windows package acceptance under repair)
+
+This recovery note supersedes older status statements below.
+
+## Current source and CI
+- Public repository: https://github.com/glenerds/kjv-bible-audio-generator
+- Version: **0.4.12**; branch head before this README update: `684b2d2fb19913ca0dc2ea47d57532363e83de84`.
+- Latest cross-platform test run `45641832984` failed only on test-harness `NameError: Path is not defined`: Ubuntu **143 passed, 4 skipped, 1 failed**; Windows **147 passed, 1 failed**. Move `from pathlib import Path` to module-level imports in `tests/test_gui_cli.py`.
+- Native Windows package run `45641833114`: PyInstaller completed a one-folder build, but packaged `--self-test` did not create the report expected by the acceptance script. Frozen startup, real speech, offline operation and relocation are not yet accepted.
+- Earlier green source baseline: Windows **141 passed**; Ubuntu **137 passed, 4 skipped**; all five PowerShell scripts parsed.
+
+## Genuine Qwen and full Genesis 1 — passed
+- Workflow: https://github.com/glenerds/kjv-bible-audio-generator/actions/runs/45639088515; tested commit `a72b9e0601d59f195d25a18abbe91857ffefbfb7`.
+- Exact pinned 1.7B checkpoint files passed full SHA-256: VoiceDesign `391e8db219f292c515297cdceeb43e4eae67cdde35fa57e79a6a8a532fca0522` (3,833,402,552 bytes); Base `38fc7fc51c5e776e840414b6fd443962e9411b9654888fd7913e4da643cb857c` (3,857,413,744 bytes); both speech tokenizers `836b7b357f5ea43e889936a3709af68dfe3751881acefe4ecf0dbd30ba571258` (682,293,092 bytes each).
+- Offline production QwenVoiceBackend generated genuine 24 kHz speech; the smoke sample is 3.12 s, 149,804 bytes, RTF 4.208, peak RSS 5,095.1 MiB.
+- The same CPU runner processed all 31 Genesis 1 verses through `ChapterWorker + QwenVoiceBackend + ChapterAudioAssembler`: 33 segments (31 narrator, 2 manually reviewed God speech in verses 3 and 6). All cue text matched source verse text exactly. Result: **1 complete chapter, 0 pending, 0 running, 0 failed**.
+- Genuine 96 kbps MP3: **3,032,397 bytes**, **252.64 s**, decoded peak 0.817366, RMS 0.116028. FFmpeg decode and non-silence checks passed. End-to-end CPU time **1,298.381 s** (21m 38s), including voice preparation; this is a hosted CPU benchmark, not a projection for the user's RTX 2070.
+- Evidence artifact `qwen-real-genesis1-pipeline`, ID `15035723541`, digest `18b6dd9a1d6a20334cc0a58d81a25a4f68f832a414b38b7778791102513a80e7`, expires 2026-12-09. It contains the MP3, 33-cue JSON, generation report/database, voice references/prompts, model integrity report and metrics. Downloaded ZIP integrity passed; MP3 SHA-256 `08b40550f5afec6fc5831b5ece77298eab2558901fc0a56abcf0084c82c8bac8`.
+- This tests only two explicit Genesis 1 speech overrides; no Bible-wide attribution, subjective listening or later-chapter identity claim is made.
+
+## Next steps
+1. Fix the missing module-level `Path` import and rerun both source suites.
+2. Align the frozen `--self-test` report contract across `tools/windows_package_acceptance.ps1`, `tools/entrypoint.py` and `src/kjv_audio_generator/__main__.py`; preserve stdout and atomically write/validate a JSON report.
+3. Rerun Windows package acceptance: require startup, self-test report, real Qwen audio smoke, FFmpeg validation, integrity and drive-letter relocation.
+4. Investigate PyInstaller missing imports/DLLs using actual frozen Qwen inference.
+5. Continue with offline Windows operation, restart/recovery, later-chapter identity, target-PC performance and final 1,189-chapter storage.
+
+## Release status
+**Developer prototype only — not ready for user testing.** Real Qwen CPU speech and the complete 31-verse Genesis 1 MP3/cue pipeline have passed on Linux. The native Windows frozen application has not passed runtime acceptance; listening QA, later-chapter continuity, USB/offline Windows operation, long-run recovery, full-book production, target-PC benchmarks and final model/software/codec/source-license review remain open.
+
+The user requires a README checkpoint before every future “Continue working” request and an explicit pause message if work stops.
+
+---
+
 # Continuation update — 2026-11-25 (Genesis workflow integrated; full real chapter queued/running)
 
 ## Current recovery point
