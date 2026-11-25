@@ -14,6 +14,7 @@ This is the newest recovery checkpoint. It supersedes any earlier statement that
 - tools/verify_smoke_transcript.py: CI-only verification using the pinned English Whisper model openai/whisper-tiny.en, revision 87c7102498dcde7456f24cfd30239ca606ed9063. It checks transcript similarity and requires the complete trailing phrase “King James Bible narrator voice” from each final MP3 decode. It does not add Whisper to the desktop app or customer runtime.
 - tests/test_speech_validation.py: covers complete transcript, case/punctuation normalization, a single omitted middle word, and the reported truncation at “King James Bi.”
 - .github/workflows/windows-package-acceptance.yml: runs this verifier after native build, synthesis and relocation; uploads diagnostic/audio evidence even if the speech check fails. The package summary remains marked pending until the verifier writes its result.
+- The same Windows workflow now separately uploads `kjv-bible-audio-generator-portable-windows-x64` **only after** the package checks and both final-MP3 transcript checks succeed. The diagnostic evidence artifact is still uploaded on failures, so a failed speech gate will not be mistaken for a releasable app.
 
 ## Qwen generation audit
 - The production adapter already calls generate_voice_clone(..., non_streaming_mode=True). I have not changed its sampling or generation parameters, nor modified normal chapter speech, because the current evidence does not identify a model-token-limit cause.
