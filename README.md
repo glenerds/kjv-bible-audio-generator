@@ -1,3 +1,58 @@
+# Continuation handoff — 2026-11-25 (direct engineering resumed)
+
+The user has asked to return to having ChatGPT perform the engineering and testing directly, rather than relying on external AI reviewers. This handoff is recorded before further code engineering so the project state can be recovered in a new chat.
+
+## What has been done so far
+
+- The separate public GitHub repository `https://github.com/glenerds/kjv-bible-audio-generator` was created by the user. It is separate from the original private `glenerds/glenerds-apps` backup repository, so unrelated projects were not made public.
+- The public repository was verified as public and initially empty. The 0.4.10 project source, application package, test files, Windows tools, documentation and AI-review instructions were then published.
+- The public repository tree was checked: 87 entries total, including 18 files under `src/kjv_audio_generator/` and 10 test files. The README, source directory, test directory, AI review start page and review prompt were fetched successfully through GitHub and verified accessible.
+- The AI review prompt was corrected to use the new public repository links, not the old private repository paths.
+- The project was previously at developer-prototype version **0.4.10**. The recorded baseline is **123 automated tests passed**, with 45 focused regressions passed, compileall passing, and clean source-archive extraction passing.
+- The user decided to stop coordinating external AI reviews and have ChatGPT continue engineering and testing directly.
+
+## Current verified starting state
+
+- Repository: `glenerds/kjv-bible-audio-generator`
+- Default branch: `main`
+- Version baseline: `0.4.10`
+- The public source has been published and is accessible, but the actual product remains a developer prototype, not a customer-ready Windows application.
+- The documented full-suite baseline is 123 passing tests. This must be independently rerun against the current public source before being reported as the current result.
+- Earlier GitHub Actions attempts failed before runner allocation; no hosted test steps executed. Do not count those attempts as passing or failing code tests.
+
+## Remaining release blockers — do not claim these passed
+
+- Genuine Qwen model installation/loading and real Genesis 1 speech generation.
+- Listening validation and recurring-character voice consistency across separate chapters.
+- Native Windows build, startup, MP3 playback and offline launch.
+- Bundled Windows FFmpeg binary, MP3 encoder probe, licensing and notice verification.
+- USB relocation and drive-letter-change behavior.
+- Real-model interruption/restart recovery and extended generation.
+- CPU/RAM/VRAM and generation-speed benchmarks.
+- Full 1,189-chapter production and measured final MP3 collection size.
+- Complete KJV dialogue/speaker attribution and software/model/codec/data licensing review.
+
+The prior development host did not have the `qwen_tts` runtime or model weights, could not resolve Hugging Face, and had no native Windows/PowerShell/Wine environment. Do not substitute synthetic audio for real Qwen inference or imply that hosted tests ran when no runner was allocated.
+
+## Work plan for the next engineering passes
+
+1. Reconcile the published public repository against the canonical 0.4.10 developer source archive; check that all expected package files, tests, Windows scripts, model-preparation code and project records are present.
+2. Independently rerun the full test suite from the public repository snapshot and from a fresh source archive extraction. Record exact commands, versions, environment and output.
+3. Audit Windows asset preparation, model-weight integrity verification, dependency pinning, packaging scripts, FFmpeg binary selection and license-notice handling.
+4. Audit the Qwen backend and adapter against verifiable upstream APIs and model requirements. Distinguish static/API review from genuine inference.
+5. Fix concrete offline-verifiable defects in small, versioned changes with regression tests.
+6. Update this README, `docs/RESUME_HERE.md` and `docs/DEVELOPMENT_STATUS.md` after meaningful engineering work.
+7. Do not ask the user to install or test the prototype until genuine Qwen speech and native Windows acceptance tests have passed.
+
+## User's continuing instructions
+
+- Keep work in the current response; do not imply background or asynchronous work.
+- When pausing, explicitly tell the user that work is paused.
+- On every future "keep working" instruction, update the README first, recording the starting state and intended work, before engineering changes.
+- The README and resume guide are the recovery record if the conversation is disconnected or moved to a new chat.
+
+---
+
 > **Public source snapshot:** This repository publishes the KJV Bible Audio Generator developer prototype 0.4.10 for independent inspection. It is not a customer-ready Windows application.
 >
 > **Independent AI review:** Start with [AI_REVIEW_START_HERE.md](AI_REVIEW_START_HERE.md) and follow [AI_REVIEW_PROMPT.md](AI_REVIEW_PROMPT.md).
