@@ -71,8 +71,6 @@ def transcribe_audio(audio_path: Path, processor: Any, model: Any, torch: Any, t
     with torch.inference_mode():
         predicted_ids = model.generate(
             features,
-            task="transcribe",
-            language="english",
             do_sample=False,
             num_beams=3,
             max_new_tokens=96,
