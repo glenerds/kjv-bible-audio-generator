@@ -821,3 +821,12 @@ def test_tokenizers_apache_license_is_pinned_and_included_during_asset_preparati
         "tokenizers Apache-2.0 license notice checksum does not match",
     ):
         assert token in prepare
+
+def test_windows_builder_fails_closed_without_pinned_tokenizers_license_notice():
+    root = Path(__file__).resolve().parents[1]
+    builder = (root / "tools" / "build_windows.ps1").read_text(encoding="utf-8")
+    required_list = next(
+        line for line in builder.splitlines()
+        if "foreach ($LicenseFile in @" in line
+    )
+    assert "'TOKENIZERS_APACHE_2.0.txt'" in required_list
