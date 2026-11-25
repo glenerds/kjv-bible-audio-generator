@@ -1,4 +1,24 @@
-# Continuation checkpoint — 2026-11-25 (full-chapter speech QA added; latest long-form Whisper run pending)
+# Continuation checkpoint — 2026-11-25 (stale source-test assertion fixed; latest full-chapter run active)
+
+The short packaged Windows speech test has passed Whisper on both the original and relocated MP3s. The full Genesis 1 speech-recognition gate is now implemented, with the latest run using the current cue-timeline checks and evidence-preserving workflow. Its result is still pending.
+
+## Latest activity after the prior checkpoint
+- The initial Ubuntu suite exposed one stale test expectation in `tests/test_asset_preparation.py`: it searched for the old workflow step name "Upload genuine Genesis 1 MP3 and timing evidence". The workflow had correctly been renamed to "Upload genuine Genesis 1 MP3 and speech-verification evidence" when the transcript report was added. No application or Qwen runtime code failed.
+- Updated the test to assert the actual workflow sequence: pinned model download, real Qwen smoke, FFmpeg setup, full Genesis 1 run, long-form Whisper transcript, then evidence upload. It also asserts the verifier script is part of the workflow.
+- The failure was observed in runs `45679525610`, `45679574789` and `45679773321` on earlier commits. The corrected source suite is running as **45680064582** (run 122) on commit `d0120006c9cbba12a43663742258ce5ea97f2e37`. No pass is claimed for that new run yet.
+- The authoritative long-form Qwen run is **45679773309** (run 15) on the verifier/timing commit `0458ae45146e1ad0fba634b767d244c8e0cdde01`. At the last check it had passed snapshot download and initial real VoiceDesign/Base smoke, and had advanced to installing FFmpeg before the full 31-verse chapter generation. Long-form Whisper and the independent cross-chapter check remain queued.
+- Before this latest full run, I inspected the real Genesis 1 cue from artifact `15049086018`: its 33 speech segments are chronological, non-overlapping, cover all 31 verses, and end at exactly the declared 268.88-second cue duration. This supports the new cue-timing rules but is not a substitute for the new ASR result.
+- The Qwen workflow now keeps the Genesis MP3/cue/Whisper report as diagnostic evidence even if the chapter transcript check fails; the separate cross-chapter voice test still runs whenever Genesis synthesis itself succeeds. This avoids losing useful audio or prompt-continuity evidence on a speech-recognition failure.
+
+## Next checkpoints
+1. Confirm run `45680064582` passes on Windows and Ubuntu with the corrected stale assertion.
+2. Inspect run `45679773309`'s `genesis1-speech-transcript-verification.json`. Check the recognized start/end text, final verse phrase, full-chapter similarity and cue validation.
+3. Confirm the cross-chapter narrator-identity evidence uploads even if ASR fails.
+4. Keep the Windows portable app in developer-prototype status until the user has listened to the fresh sample and the remaining target-GPU, physical USB, long-run recovery, full-Bible and licensing tests are done.
+
+---
+
+
 
 This is the newest recovery checkpoint. The short Windows smoke-sentence now passes independent ASR on both packaged and relocated MP3s. A new CI-only long-form Whisper gate has been added to verify the complete Genesis 1 chapter against all 31 KJV verses; its first real-Qwen run is in progress and has **not** yet passed or failed.
 
