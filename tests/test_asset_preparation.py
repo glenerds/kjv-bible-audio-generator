@@ -804,3 +804,20 @@ def test_real_qwen_workflow_runs_genesis_after_voice_smoke_without_redownloading
     ):
         assert token in genesis
     assert "SyntheticTestBackend" not in genesis
+
+def test_tokenizers_apache_license_is_pinned_and_included_during_asset_preparation():
+    root = Path(__file__).resolve().parents[1]
+    prepare = (root / "tools" / "prepare_assets.ps1").read_text(encoding="utf-8")
+    license_path = root / "LICENSES" / "TOKENIZERS_APACHE_2.0.txt"
+
+    assert license_path.is_file()
+    assert "Apache License" in license_path.read_text(encoding="utf-8")
+    assert "Version 2.0, January 2004" in license_path.read_text(encoding="utf-8")
+    for token in (
+        "$TokenizerLicenseCommit = 'f383101a26663708484cac0727792aad74f78234'",
+        "huggingface/tokenizers/$TokenizerLicenseCommit/LICENSE",
+        "$TokenizerLicensePath = Join-Path $LicenseDir 'TOKENIZERS_APACHE_2.0.txt'",
+        "261eeb9e9f8b2b4b0d119366dda99c6fd7d35c64",
+        "tokenizers Apache-2.0 license notice checksum does not match",
+    ):
+        assert token in prepare
