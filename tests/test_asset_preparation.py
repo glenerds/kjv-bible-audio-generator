@@ -749,3 +749,28 @@ def test_real_qwen_smoke_workflow_has_valid_step_scoped_cache_and_offline_enviro
     inference_step = job.split("- name: Run real VoiceDesign", 1)[1].split("- name: Upload genuine Qwen audio", 1)[0]
     assert 'HF_HUB_OFFLINE: "1"' in inference_step
     assert 'TRANSFORMERS_OFFLINE: "1"' in inference_step
+
+
+
+def test_real_qwen_genesis1_script_uses_actual_worker_and_checks_31_verses_mp3_and_cues():
+    root = Path(__file__).resolve().parents[1]
+    script = (root / "tools" / "qwen_genesis1_real.py").read_text(encoding="utf-8")
+    for token in (
+        "ChapterWorker(",
+        "QwenVoiceBackend(",
+        "ChapterAudioAssembler(",
+        "examples",
+        "genesis_1_kjv_test.txt",
+        '"Genesis 1:3"',
+        '"Genesis 1:6"',
+        '"speaker_id": "god"',
+        "expected_counts = {\"pending\": 0, \"running\": 0, \"complete\": 1, \"failed\": 0}",
+        "len(segments) != 33",
+        '"narrator"',
+        '"god"',
+        "GENUINE_QWEN_GENESIS1_PIPELINE_PASSED",
+        "synthetic_test_backend",
+        "offline_inference",
+    ):
+        assert token in script
+    assert "SyntheticTestBackend" not in script
