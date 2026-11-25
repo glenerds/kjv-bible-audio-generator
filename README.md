@@ -1,4 +1,25 @@
-# Continuation checkpoint — 2026-11-25 (user listening report confirmed; final-MP3 speech gate pending)
+# Continuation checkpoint — 2026-11-25 (Windows speech-gate shell bug found and fixed; audio verdict still pending)
+
+This is the newest recovery checkpoint. The original audible cutoff remains unresolved; a later Windows CI failure was traced to a workflow command-shell error, not to a Whisper verdict.
+
+## Latest confirmed findings
+- The user reports hearing: **“This is a test of the King James Bi…”**. The original packaged MP3 remains a failed human listening test.
+- I inspected the Windows evidence artifacts for runs `45663420035` and `45661869168`. Both acceptance summaries still had `speech_transcript_check: pending`, and neither artifact contained `speech-transcript-verification.json`. This means the Whisper script did not write a result; these failures must not be described as ASR-detected speech truncation.
+- Root cause: `.github/workflows/windows-package-acceptance.yml` used Bash backslash line continuations in the Whisper step without specifying a shell. GitHub Actions defaults to PowerShell Core on Windows when `shell` is omitted. Its workflow documentation confirms that `shell: bash` uses the Git-for-Windows Bash interpreter on Windows. See https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax
+- Fixed the Whisper step to set `shell: bash` explicitly and start with `set -euo pipefail`. Added a regression assertion that checks both settings, both decoded-MP3 inputs, and the success-only portable-app upload.
+- The latest inspected run-24 artifact confirms the package itself built, passed the self-test, generated Qwen audio, decoded MP3, and relocated to the simulated Z: drive. Its two decoded smoke WAVs are 3.52 seconds and 4.00 seconds; these durations alone do not confirm the complete sentence.
+- The actual Whisper transcript result is still **unknown**. The next native Windows package run must generate a real `speech-transcript-verification.json`; inspect its recognized text and verify that both outputs contain the complete final phrase.
+- The README and source regression coverage are current. The application is still withheld from release until the final MP3 transcript gate and human listening check both pass.
+
+## Next steps
+1. Inspect the next native Windows package workflow run and confirm the Whisper step actually executes under Bash.
+2. Inspect the ASR JSON for the exact recognized transcript of both original and relocated MP3s. If either is incomplete, investigate the audio output itself and preserve the failing file.
+3. Run the cross-platform tests for the new shell regression assertion.
+4. Finish the genuine Genesis 1 and cross-chapter voice-continuity tests independently of the short speech smoke.
+
+---
+
+
 
 This is the newest recovery checkpoint. The earlier packaged MP3 is **not** accepted as a successful speech test. The user has confirmed that playback stopped at “This is a test of the King James Bi…”. The Windows package must pass an independent transcript check on both final MP3s before the portable application is published.
 
