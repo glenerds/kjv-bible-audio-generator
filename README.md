@@ -1,3 +1,27 @@
+# Continuation checkpoint — 2026-11-25 (source suites green; portable payload measurement underway)
+
+This is the newest recovery note.
+
+## Latest source verification
+- Current source head before this README update: `a962f3e4506e61710de5cc86a4227c52cf27e4f2`.
+- Cross-platform run `45658060557` passed on both systems:
+  - Windows 11 / Python 3.12: **151 passed** in 135.97 seconds; all five PowerShell build/helper scripts parsed successfully.
+  - Ubuntu 24.04 / Python 3.13: **147 passed, 4 skipped** (NTFS/Windows-only tests).
+
+## Portable Windows app milestone
+- The earlier native package acceptance run `45653137050` passed with the genuine frozen Windows app: self-test, real Qwen CPU speech smoke, bundled FFmpeg decode, relocation to `Z:`, relocated self-test/audio smoke and relocated MP3 decode all passed.
+- Evidence artifact `windows-portable-package-acceptance` ID `15043870816` was downloaded and verified. ZIP test passed; reports and diagnostic records show frozen-process exit code 0. The artifact contains evidence and sample audio, not the full distribution folder.
+- Newer package run `45658060503` includes the added cleanup/restore step: after successful relocation checks, remove temporary acceptance outputs, record all app files and sizes, then restore the tested app folder to `dist`. This run is still active; its measured payload size and restore result are not yet known.
+
+## Real Qwen chapter and cross-chapter testing
+- Qwen combined run `45655573454` downloaded both exact pinned 1.7B snapshots, verified their full SHA-256 values, passed offline VoiceDesign and Base prompt generation and uploaded its genuine speech smoke evidence.
+- Its full Genesis 1 chapter pipeline is currently running; the two-chapter narrator prompt-continuity stage follows it.
+- The cross-chapter test uses exact KJV Genesis 1:1 and Genesis 2:23 source text, one worker/backend across both chapter records and asserts identical narrator prompt SHA-256 at both chapter syntheses. The corrected source colon after `flesh of my flesh` is preserved exactly.
+
+## Remaining
+**Developer prototype only; not ready for customer testing.** Need the current real-Qwen Genesis 1 and narrator-continuity results, portable app payload size, target RTX GPU test, physical USB test, long-run stop/recovery, all 1,189 chapters, subjective listening review, Bible-wide speaker attribution/review and final license/source-obligation checks.
+
+---
 # Continuation checkpoint — 2026-11-25 (native Windows portable acceptance passed)
 
 This is the newest recovery point. The earlier checkpoints below preserve the real-Qwen Genesis 1 and cross-chapter development history.
