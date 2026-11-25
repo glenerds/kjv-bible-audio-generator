@@ -123,17 +123,29 @@ def main() -> int:
         try:
             registry = VoiceRegistry.defaults(); backend = QwenVoiceBackend(settings, args.output / "metadata" / "voice_assets")
             profile = registry.get("narrator"); backend.prepare_profiles([profile])
-            samples, sr = backend.synthesize("This is a test of the King James Bible narrator voice.", profile)
+            audio_smoke_text = "This is a test of the King James Bible narrator voice."
+            samples, sr = backend.synthesize(audio_smoke_text, profile)
+            if int(sr) <= 0 or len(samples) <= 0:
+                raise RuntimeError("Qwen audio smoke returned no usable samples or an invalid sample rate.")
+            args.output.mkdir(parents=True, exist_ok=True)
+            audio_wav = args.output / "qwen_audio_smoke.wav"
+            import soundfile as sf
+            sf.write(str(audio_wav), samples, int(sr), subtype="PCM_16")
+            if not audio_wav.is_file() or audio_wav.stat().st_size <= 44:
+                raise RuntimeError("Qwen audio smoke WAV was not written successfully.")
             assembler = ChapterAudioAssembler(args.output, ffmpeg_path, args.bitrate)
             from .models import SpeechSegment, VerseRef
-            seg = SpeechSegment(VerseRef("Genesis",1,1),0,"narrator","This is a test of the King James Bible narrator voice.")
+            seg = SpeechSegment(VerseRef("Genesis",1,1),0,"narrator",audio_smoke_text)
             mp3, cue = assembler.write_chapter("Genesis",0+1,[seg],[(samples,sr)])
             payload = {
                 "ok": True,
                 "audio": str(mp3),
+                "wav": str(audio_wav),
                 "cue": str(cue),
+                "text": audio_smoke_text,
                 "samples": len(samples),
-                "sample_rate": sr,
+                "sample_rate": int(sr),
+                "duration_seconds": round(len(samples) / float(sr), 3),
             }
             _emit_cli_json(args.output / "metadata" / "audio_smoke_report.json", payload)
             return 0
