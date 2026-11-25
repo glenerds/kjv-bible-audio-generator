@@ -1,3 +1,27 @@
+# Continuation update — 2026-11-24 (pre-work: verify latest Windows run and resume engineering)
+
+This note is written before the next engineering actions, as requested.
+
+## Starting state
+- Package version: 0.4.11.
+- Latest source commit: 9fe98ff92d494a9e38f63060ca637e69db4241de.
+- Canonical 0.4.10 archive comparison: all 72 product files other than the intentionally updated README match the public Git tree; three AI-review documents are extra repository files.
+- Latest local clean-extraction verification after the 0.4.11 test changes: compileall passed and 125 tests passed.
+- Latest hosted Ubuntu run at commit 9fe98ff: 125 tests passed.
+- Native Windows failure was traced to test-fixture disk exhaustion: Path.truncate() allocated the 3.5 GB and 650 MB fake Qwen model files on NTFS, unlike the sparse Linux filesystem. The fixture now calls FSCTL_SET_SPARSE before extending the fake files.
+- New hosted run ID 45533143315 is for that sparse-file fix. The last checked state had Ubuntu passed and Windows in dependency installation; no Windows pass has yet been claimed.
+
+## Planned work
+1. Verify the live commit, workflow run and all latest Windows/Ubuntu job steps.
+2. Retrieve Windows test output and run the PowerShell parser step once available; distinguish a real source/test failure from runner setup.
+3. If the sparse fixture passes, retain the change and update the recorded Windows result. If it fails, diagnose the exact exception and add the smallest regression fix.
+4. Re-run local compileall and the full Linux suite when source code changes.
+5. Continue the Windows build, FFmpeg and model-asset audit only after the active CI result is clear; preserve all unpassed product-release gates.
+
+No genuine Qwen inference, finished Windows desktop application, customer FFmpeg bundle, offline playback, USB relocation, full Bible run or hardware performance benchmark is considered passed.
+
+---
+
 # Native Windows CI follow-up — 2026-11-24 (sparse model test fixtures)
 
 The 0.4.11 native Windows / Python 3.12 CI job successfully installed FFmpeg and CPU PyTorch, installed the dev extra, and passed compileall. The full test run then exhausted the hosted runner's system disk. The error occurred in pytest fixture setup (WinError 112) because the Qwen adapter tests create fake 3.5 GB and 650 MB weight placeholders using Path.truncate(). On Linux the fixture files are sparse; on Windows, the same truncate operation reserved actual disk blocks.
