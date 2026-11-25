@@ -168,6 +168,45 @@ if ((Get-GitBlobSha1 $TokenizerLicensePath) -ne '261eeb9e9f8b2b4b0d119366dda99c6
     throw 'tokenizers Apache-2.0 license notice checksum does not match the pinned upstream source.'
 }
 
+# PyTorch 2.10.0's Windows CUDA 12.8 build configuration selects the official
+# cuDNN 9.7.0.66 archive. Preserve the matching versioned NVIDIA SDK EULA and
+# its third-party acknowledgements in the portable application.
+$CudnnVersion = '9.7.0'
+$CudnnEulaPath = Join-Path $LicenseDir "CUDNN_${CudnnVersion}_EULA.html"
+$CudnnAcknowledgementsPath = Join-Path $LicenseDir "CUDNN_${CudnnVersion}_ACKNOWLEDGEMENTS.html"
+$CudnnEulaUri = "https://docs.nvidia.com/deeplearning/cudnn/backend/v$CudnnVersion/reference/eula.html"
+$CudnnAcknowledgementsUri = "https://docs.nvidia.com/deeplearning/cudnn/backend/v$CudnnVersion/reference/acknowledgements.html"
+Invoke-WebRequest -Uri $CudnnEulaUri -OutFile $CudnnEulaPath -UseBasicParsing
+Invoke-WebRequest -Uri $CudnnAcknowledgementsUri -OutFile $CudnnAcknowledgementsPath -UseBasicParsing
+$CudnnEulaText = Get-Content -Raw -LiteralPath $CudnnEulaPath
+$CudnnAcknowledgementsText = Get-Content -Raw -LiteralPath $CudnnAcknowledgementsPath
+foreach ($RequiredTerm in @('LICENSE AGREEMENT FOR NVIDIA SOFTWARE DEVELOPMENT KITS','cuDNN SUPPLEMENT TO SOFTWARE LICENSE AGREEMENT','runtime files .so and .dll')) {
+    if ($CudnnEulaText -notmatch [regex]::Escape($RequiredTerm)) {
+        throw "Downloaded cuDNN EULA is missing a required version/redistribution clause: $RequiredTerm"
+    }
+}
+foreach ($RequiredTerm in @('University of Tennessee','University of California','Facebook AI Research','Redistribution and use in source and binary forms')) {
+    if ($CudnnAcknowledgementsText -notmatch [regex]::Escape($RequiredTerm)) {
+        throw "Downloaded cuDNN acknowledgements are missing a required third-party notice: $RequiredTerm"
+    }
+}
+$CudnnNoticeManifest = @{
+    schema_version = 1
+    cudnn_archive = 'cudnn-windows-x86_64-9.7.0.66_cuda12-archive.zip'
+    cudnn_version = $CudnnVersion
+    upstream_configuration = 'https://github.com/pytorch/pytorch/blob/v2.10.0/.ci/pytorch/windows/internal/cuda_install.bat'
+    eula_url = $CudnnEulaUri
+    eula_sha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath $CudnnEulaPath).Hash.ToLowerInvariant()
+    acknowledgements_url = $CudnnAcknowledgementsUri
+    acknowledgements_sha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath $CudnnAcknowledgementsPath).Hash.ToLowerInvariant()
+}
+$CudnnManifestJson = $CudnnNoticeManifest | ConvertTo-Json -Depth 5
+[System.IO.File]::WriteAllText(
+    (Join-Path $LicenseDir 'NVIDIA_CUDNN_NOTICE_MANIFEST.json'),
+    $CudnnManifestJson + [Environment]::NewLine,
+    $Utf8NoBom
+)
+
 $ManifestModels = @()
 foreach ($Model in $ModelSources) {
     $Destination = Join-Path $Models $Model.Folder
