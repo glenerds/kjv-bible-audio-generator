@@ -1,3 +1,37 @@
+# Continuation checkpoint — 2026-11-25 (final-MP3 speech-completeness gate added)
+
+This is the newest recovery checkpoint. It supersedes any earlier statement that successful Qwen synthesis plus MP3 decoding alone proves the whole sentence was spoken.
+
+## User-reported problem and exact prior evidence
+- The user listened to the earlier Windows smoke output and heard: **“This is a test of the King James Bi…”**, with the utterance stopping before “Bible narrator voice.”
+- I downloaded the earlier Windows acceptance artifact (ID 15043870816) and inspected it directly. The packaged MP3 is 45,837 bytes, mono 48 kHz, 96,702 bit/s and 3.792 seconds. The audio cue duration is 3.76 seconds and its stored text is the complete expected sentence.
+- The smoke report says 90,240 samples at 24 kHz and ok: true. Those facts prove Qwen returned a waveform and FFmpeg created/decoded an MP3. The cue stores the expected input text; it is not a speech transcript. **The user's listening report remains an unresolved audio-completeness defect.**
+
+## Code changes now committed
+- src/kjv_audio_generator/__main__.py: the --audio-smoke command now saves a PCM-16 WAV of the generated samples and records the exact expected text, WAV path and sample duration in audio_smoke_report.json. Normal chapter generation is unchanged.
+- tests/test_gui_cli.py: checks the smoke report text, duration field and generated WAV sample rate/frame count.
+- tools/windows_package_acceptance.ps1: verifies the report and cue both contain the exact expected sentence, decodes the final packaged MP3 and relocated MP3 to WAV, and places those decoded files into acceptance evidence.
+- tools/verify_smoke_transcript.py: CI-only verification using the pinned English Whisper model openai/whisper-tiny.en, revision 87c7102498dcde7456f24cfd30239ca606ed9063. It checks transcript similarity and requires the complete trailing phrase “King James Bible narrator voice” from each final MP3 decode. It does not add Whisper to the desktop app or customer runtime.
+- tests/test_speech_validation.py: covers complete transcript, case/punctuation normalization, a single omitted middle word, and the reported truncation at “King James Bi.”
+- .github/workflows/windows-package-acceptance.yml: runs this verifier after native build, synthesis and relocation; uploads diagnostic/audio evidence even if the speech check fails. The package summary remains marked pending until the verifier writes its result.
+
+## Qwen generation audit
+- The production adapter already calls generate_voice_clone(..., non_streaming_mode=True). I have not changed its sampling or generation parameters, nor modified normal chapter speech, because the current evidence does not identify a model-token-limit cause.
+- Qwen upstream PR #362 describes speaking-rate drift in simulated-streaming voice-clone mode; this project explicitly uses non-streaming mode, so that specific issue is not established as the cause here: https://github.com/QwenLM/Qwen3-TTS/pull/362
+- The CI verifier uses the Hugging Face Transformers WhisperProcessor / WhisperForConditionalGeneration workflow and the English-only tiny checkpoint: https://huggingface.co/openai/whisper-tiny.en
+- Whisper can make transcription errors or hallucinate words. ASR is therefore an independent automated safeguard, not a substitute for the user's listening approval. Human listening QA remains open.
+
+## Current CI state
+- The first Ubuntu run of the new smoke-WAV test exposed one test-only precision mismatch: the report rounds durations to milliseconds, while the test compared against an unrounded sample duration. The other tests in that run passed (151 passed, 4 skipped); I corrected the assertion to allow the documented millisecond rounding.
+- Cross-platform rerun 45661437815 (commit 32c48c6451b2d1c4190d7798bab73b33b7a5414c) is in progress.
+- Native Windows package rerun 45661437869 at the same commit is in progress. It has reached the actual package build/acceptance step; Whisper verification follows that step.
+- Earlier package run 45661097956 (commit b310f282fb373c52c96de108074fff8b6a421d6f) is also running the new Windows transcript-verification workflow. No speech-transcript pass is claimed yet.
+
+## Release status
+**Developer prototype only—not ready for customer testing.** The speech-completeness check is implemented but awaits its real native Windows result. The user's reported cutoff remains open until the final packaged MP3s are transcribed successfully and the audio is listened to again. Target RTX 2070 Super performance/VRAM, physical USB relocation, long-run stop/recovery, complete 1,189-chapter generation, Bible-wide speaker attribution, subjective listening approval and final license/source review also remain open.
+
+---
+
 # Continuation checkpoint — 2026-11-25 (model residency test green; package size measurement pending)
 
 This is the newest recovery note.
