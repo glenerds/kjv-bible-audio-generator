@@ -1,3 +1,30 @@
+# Continuation log — 2026-11-24 (pre-work update: repository reconciliation and clean test rerun)
+
+This update is being committed **before** engineering, as required by the user's continuation instruction. No application source or test code has been changed in this work pass yet.
+
+## Starting state verified from the public repository
+
+- Repository: `https://github.com/glenerds/kjv-bible-audio-generator`, default branch `main`.
+- Published developer baseline: **0.4.10**.
+- Latest previously documented source-tree counts: 87 repository entries, including 18 files under `src/kjv_audio_generator/` and 10 test files.
+- Prior 0.4.10 verification record: 123 full-suite tests passed, 45 focused regressions passed, compileall passed, and a 73-file source archive passed ZIP integrity, clean extraction, compileall and the 123-test suite.
+- These are historical results until this work pass reruns them from the exact current public snapshot.
+- The latest README handoff says the product remains a developer prototype; there is no verified genuine Qwen speech run or native Windows acceptance pass.
+- Current README blob before this pre-work update: `90bc7b351ddcde32463873ecd2d968b1bddcaad8`.
+
+## Intended work in this pass
+
+1. Retrieve the canonical 0.4.10 developer ZIP from the saved project file and verify its exact SHA-256 and ZIP integrity.
+2. Compare its tracked project paths and file contents against the current public GitHub tree, distinguishing intentionally added public-repository review material from product source.
+3. Create a clean working extraction from the canonical ZIP and independently rerun compileall and the full automated test suite, recording actual environment and results.
+4. Correct any confirmed public-repository/source-archive drift. Do not change application behavior merely to make counts match.
+5. Inspect the existing build/test automation and determine whether a native Windows Actions run can be executed; report only work that actually receives a runner and executes.
+6. Record precise findings in the README, resume guide and development status. Keep genuine Qwen inference, Windows packaging/playback, USB portability, real-world performance and full-Bible production explicitly marked unverified until actually exercised.
+
+**Safety of claims:** mocks and synthetic Genesis audio are not genuine Qwen inference. A missing Actions runner is not a code test. Linux results are not Windows acceptance. Do not ask the user to test until genuine Qwen audio and native Windows acceptance gates pass.
+
+---
+
 # Continuation handoff — 2026-11-25 (direct engineering resumed)
 
 The user has asked to return to having ChatGPT perform the engineering and testing directly, rather than relying on external AI reviewers. This handoff is recorded before further code engineering so the project state can be recovered in a new chat.
