@@ -1,3 +1,36 @@
+# Continuation checkpoint — 2026-11-25 (cross-chapter narrator test added; Windows package final evidence retest)
+
+This is the newest recovery point and supersedes older status where different.
+
+## Current source state
+- Current branch head: `087aaba01b83d3e8a5a5159fa3dc47b6d6155f29`.
+- Prototype version remains **0.4.12**.
+- `tools/windows_package_acceptance.ps1` no longer attempts to copy a diagnostic file onto itself. A prior waited-process Windows run reached that final evidence-collection loop only after both original and relocated self-test/audio-smoke/FFmpeg-decode stages had completed; the old loop then raised `Copy-Item` because source and destination were identical. The new script correctly leaves those diagnostic files where the frozen entrypoint wrote them.
+- The current Windows package runs `45653137050`, `45654417086`, and `45655573537` are/ were exercising the corrected process-wait/evidence path. Do not claim Windows portable acceptance until one run completes and its artifact/report is checked.
+- The most recent full green source baseline before the cross-chapter files: Windows **149 passed**; Ubuntu **145 passed, 4 skipped**. The subsequent cross-chapter harness added static checks and extended the Qwen workflow, so its latest source run is still pending.
+
+## New cross-chapter voice-continuity test
+- Added `examples/genesis_cross_chapter_voice_test.txt`, a deliberately minimal fixture with Genesis 1:1 and Genesis 2:23. It is explicitly not a complete Bible import.
+- Independently compared the two fixture lines against the `Genesis.json` file in the public KJV corpus at `https://github.com/renniemaharaj/kjv-bible`; both lines now match exactly. The existing Genesis 1 test fixture was also compared verse-by-verse: all 31 verses matched the same corpus.
+- Added `tools/qwen_cross_chapter_voice_real.py`. It uses one real `ChapterWorker`, one production `QwenVoiceBackend`, and one output folder across two chapter records. Genesis 2:23 has a manually reviewed narrator/Adam split that rejoins exactly to the original KJV verse.
+- The harness checks one batch voice-preparation phase; one VoiceDesign reference and one Base clone prompt per narrator/Adam profile; the same narrator profile fingerprint before/after generation; identical narrator prompt-file SHA-256 at the Genesis 1 and Genesis 2 narrator synthesis calls; two chapter MP3s that decode to non-silent audio; and exact cue-text preservation.
+- The Genesis 2:23 punctuation was corrected during review: the approved KJV uses a **colon** after `flesh of my flesh`. The fixture and speaker split now use that exact punctuation. This was verified by direct comparison to the source JSON, not by inference.
+- The workflow `.github/workflows/qwen-real-inference.yml` runs the new harness after the real Genesis 1 test, reusing the same already-downloaded and hash-verified Qwen snapshots. A separate artifact is planned for the two chapter excerpts, cues, fingerprints and metrics.
+- The cross-chapter real-Qwen run on the corrected source is `45655573454`; source tests on the same head are `45655573349`. They had only just been queued at the time of this note; no real cross-chapter pass is claimed yet.
+
+## Genuine Qwen Genesis 1 evidence remains valid
+- Run `45639088515` previously passed the full 31-verse Genesis 1 Qwen worker pipeline on Linux CPU. It produced a 96 kbps MP3 with 33 exact-text timing segments (31 narrator, 2 reviewed God speech), passed MP3 decoding and non-silence checks, and recorded zero failed chapters.
+- This establishes real speech and chapter assembly only. It does not establish perceptual voice quality or voice continuity across chapters; that is why the new small test exists.
+
+## Next tasks
+1. Confirm the latest source suite passes on Windows and Ubuntu, including the new static test and updated Qwen workflow environment counts.
+2. Inspect the new real-Qwen cross-chapter workflow after Genesis 1 finishes. Verify the prompt hash is the same at both narrator uses and check the actual Genesis 1/2 MP3s and cue JSON.
+3. Confirm one native Windows package run completes: self-test, real Qwen audio smoke, MP3 decode, drive-letter relocation, relocated audio smoke, relocated decode, evidence JSON and uploaded artifact.
+4. Inspect the frozen package contents and hashes; then continue with offline Windows operation, physical USB testing, crash recovery, later speaker identities, target-PC benchmarks and full 1,189-chapter production.
+
+**Release remains developer prototype only — not ready for customer testing.** Full-book generation, subjective listening approval, Bible-wide attribution, physical USB and target-PC performance, and legal/source-obligation review remain open.
+
+---
 # Continuation checkpoint — 2026-11-25 (150 Windows / 146 Ubuntu tests green; package evidence finalizing)
 
 This checkpoint supersedes the source counts in the earlier process-wait note below.
