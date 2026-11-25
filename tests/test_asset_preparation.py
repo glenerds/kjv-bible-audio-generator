@@ -845,6 +845,7 @@ def test_cudnn_97_eula_and_acknowledgements_are_pinned_and_required_for_windows_
         "EULA.html",
         "ACKNOWLEDGEMENTS.html",
         "NVIDIA_CUDNN_NOTICE_MANIFEST.json",
+        "'runtime files','.so','.dll'",
         "eula_sha256",
         "acknowledgements_sha256",
         "University of Tennessee",
