@@ -1,0 +1,89 @@
+name: Genuine Qwen CPU inference smoke (pinned snapshots)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/qwen-real-inference.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  real-qwen-cpu:
+    name: Download pinned snapshots and synthesize real speech
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      HF_HOME: ${{ runner.temp }}/huggingface
+      HF_HUB_CACHE: ${{ runner.temp }}/huggingface/hub
+      HF_HUB_DISABLE_TELEMETRY: "1"
+      HF_HUB_ENABLE_HF_TRANSFER: "0"
+      OMP_NUM_THREADS: "4"
+      MKL_NUM_THREADS: "4"
+      TOKENIZERS_PARALLELISM: "false"
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install CPU PyTorch and the pinned Qwen runtime
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install torch==2.10.0 torchaudio==2.10.0 --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install -e ".[qwen]"
+          python -m pip install "huggingface_hub>=0.34,<1.0"
+          python -m pip check
+
+      - name: Show available resources
+        run: |
+          df -h
+          free -h
+          python -c "import torch; print('torch', torch.__version__, 'cpu_threads', torch.get_num_threads())"
+
+      - name: Download exact pinned Qwen VoiceDesign and Base snapshots
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p models artifacts/qwen-real-inference
+          hf download Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign \
+            --revision 5ecdb67327fd37bb2e042aab12ff7391903235d3 \
+            --local-dir models/Qwen3-TTS-12Hz-1.7B-VoiceDesign
+          hf download Qwen/Qwen3-TTS-12Hz-1.7B-Base \
+            --revision fd4b254389122332181a7c3db7f27e918eec64e3 \
+            --local-dir models/Qwen3-TTS-12Hz-1.7B-Base
+          python tools/qwen_asset_integrity.py report --models-root models > artifacts/qwen-real-inference/model-integrity.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          report = json.loads(Path("artifacts/qwen-real-inference/model-integrity.json").read_text())
+          assert len(report) == 2
+          print("Both pinned Qwen snapshots passed full-file SHA-256 verification.")
+          PY
+
+      - name: Run real VoiceDesign and Base synthesis with the network disabled
+        env:
+          HF_HUB_OFFLINE: "1"
+          TRANSFORMERS_OFFLINE: "1"
+          HF_DATASETS_OFFLINE: "1"
+        run: |
+          python tools/qwen_real_smoke.py \
+            --models-root models \
+            --integrity-report artifacts/qwen-real-inference/model-integrity.json \
+            --output-dir artifacts/qwen-real-inference/output \
+            --device cpu
+
+      - name: Upload genuine Qwen audio and verification evidence
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qwen-real-cpu-inference-smoke
+          path: artifacts/qwen-real-inference/**
+          if-no-files-found: error
+          retention-days: 14
