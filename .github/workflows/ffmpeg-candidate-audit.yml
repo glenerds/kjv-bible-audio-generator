@@ -6,6 +6,7 @@ on:
     paths:
       - ".github/workflows/ffmpeg-candidate-audit.yml"
       - "tools/run_ffmpeg_candidate_audit.ps1"
+      - "tools/ensure_ffmpeg.ps1"
       - "tools/ffmpeg_notices.py"
       - "tools/import_ffmpeg_notices.ps1"
       - "LICENSES/README_FFMPEG.md"
@@ -31,7 +32,7 @@ jobs:
 
       - name: Download and audit the pinned LGPL binary
         shell: pwsh
-        run: ./tools/run_ffmpeg_candidate_audit.ps1
+        run: ./tools/ensure_ffmpeg.ps1 -Root $env:GITHUB_WORKSPACE
 
       - name: Upload candidate audit evidence
         if: success()
