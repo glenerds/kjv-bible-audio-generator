@@ -8,12 +8,14 @@ on:
       - "tools/qwen_asset_integrity.py"
       - "tools/qwen_real_smoke.py"
       - "tools/qwen_genesis1_real.py"
+      - "tools/qwen_cross_chapter_voice_real.py"
       - "src/kjv_audio_generator/backend.py"
       - "src/kjv_audio_generator/worker.py"
       - "src/kjv_audio_generator/audio.py"
       - "src/kjv_audio_generator/attribution.py"
       - "src/kjv_audio_generator/voices.py"
       - "examples/genesis_1_kjv_test.txt"
+      - "examples/genesis_cross_chapter_voice_test.txt"
   workflow_dispatch:
 
 permissions:
@@ -143,5 +145,34 @@ jobs:
           path: |
             artifacts/qwen-real-inference/model-integrity.json
             artifacts/qwen-real-inference/genesis1-output/**
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Run real Qwen narrator identity check across Genesis 1 and 2 offline
+        env:
+          HF_HOME: ${{ runner.temp }}/huggingface
+          HF_HUB_DISABLE_TELEMETRY: "1"
+          HF_HUB_ENABLE_HF_TRANSFER: "0"
+          OMP_NUM_THREADS: "4"
+          MKL_NUM_THREADS: "4"
+          TOKENIZERS_PARALLELISM: "false"
+          HF_HUB_OFFLINE: "1"
+          TRANSFORMERS_OFFLINE: "1"
+          HF_DATASETS_OFFLINE: "1"
+        run: |
+          python tools/qwen_cross_chapter_voice_real.py \
+            --models-root models \
+            --integrity-report artifacts/qwen-real-inference/model-integrity.json \
+            --output-dir artifacts/qwen-real-inference/cross-chapter-voice-output \
+            --device cpu \
+            --ffmpeg "$(command -v ffmpeg)"
+
+      - name: Upload genuine cross-chapter narrator identity evidence
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qwen-real-cross-chapter-voice-identity
+          path: |
+            artifacts/qwen-real-inference/cross-chapter-voice-output/**
           if-no-files-found: error
           retention-days: 14
