@@ -741,9 +741,9 @@ def test_real_qwen_smoke_workflow_has_valid_step_scoped_cache_and_offline_enviro
     job = workflow.split("  real-qwen-cpu:", 1)[1]
     assert "    env:\n      HF_HOME: ${{ runner.temp }}" not in job
     assert job.count("HF_HOME: ${{ runner.temp }}/huggingface") == 4
-    assert job.count("HF_HUB_OFFLINE: \"1\"") == 1
-    assert job.count("TRANSFORMERS_OFFLINE: \"1\"") == 1
-    assert job.count("HF_DATASETS_OFFLINE: \"1\"") == 1
+    assert job.count("HF_HUB_OFFLINE: \"1\"") == 2
+    assert job.count("TRANSFORMERS_OFFLINE: \"1\"") == 2
+    assert job.count("HF_DATASETS_OFFLINE: \"1\"") == 2
     download_step = job.split("- name: Download exact pinned Qwen VoiceDesign and Base snapshots", 1)[1].split("- name: Run real VoiceDesign", 1)[0]
     assert "HF_HUB_OFFLINE" not in download_step
     inference_step = job.split("- name: Run real VoiceDesign", 1)[1].split("- name: Upload genuine Qwen audio", 1)[0]
