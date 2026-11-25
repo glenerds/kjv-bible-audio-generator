@@ -1,3 +1,21 @@
+# Continuation update — 2026-11-24 (pre-work: repair native Windows path validation)
+
+## Verified starting state
+- Package version remains 0.4.11. Latest code commit: `1933c8910533df6dc937f2c0c1976769fb816fb1`.
+- The focused NTFS allocation test passed on the hosted Windows/Python 3.12 runner after the test fixture added `FSCTL_SET_ZERO_DATA`.
+- The same hosted Windows full suite executed to completion: **125 passed, 1 failed** in 134.73 seconds. This is now an actual test result, unlike the previous missing-log failures.
+- The single failure is `tests/test_asset_preparation.py::test_ffmpeg_notice_import_rejects_windows_unsafe_and_reserved_source_paths`: an input source filename `NOTICE.txt:stream` was accepted by the FFmpeg notice importer on Windows, although a colon denotes an alternate data stream separator there. The full Windows suite therefore stops before the PowerShell parser check.
+- The matching hosted Ubuntu job passed its full suite. The local Linux full suite passed 125 tests with the Windows-only sparse-file diagnostic skipped.
+
+## Work planned next
+1. Inspect the exact failing security test and `tools/ffmpeg_notices.py` source-path validation.
+2. Fix Windows alternate-data-stream path rejection without weakening Linux checks or rejecting legitimate relative notice paths.
+3. Add a narrowly scoped regression test for Windows drive/ADS syntax, then rerun local compileall/full suite.
+4. Push the smallest change and rerun the Windows full test suite and PowerShell AST parse; do not treat the existing 125/1 result as a pass.
+5. Preserve the remaining release gates: Qwen inference, full model integrity, production FFmpeg licensing, Windows app build/playback, USB relocation and hardware benchmarks.
+
+---
+
 # Windows sparse-file fix — 2026-11-24 (FSCTL_SET_ZERO_DATA)
 
 The isolated Windows allocation probe produced the exact reason the earlier FSCTL_SET_SPARSE-only fixture still failed: the 3.5 GB logical sparse file was marked sparse, but `GetCompressedFileSizeW` still measured 147,324,928 bytes allocated.
