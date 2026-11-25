@@ -1,4 +1,22 @@
-# Continuation checkpoint — 2026-11-25 (final-MP3 speech-completeness gate added)
+# Continuation checkpoint — 2026-11-25 (user listening report confirmed; final-MP3 speech gate pending)
+
+This is the newest recovery checkpoint. The earlier packaged MP3 is **not** accepted as a successful speech test. The user has confirmed that playback stopped at “This is a test of the King James Bi…”. The Windows package must pass an independent transcript check on both final MP3s before the portable application is published.
+
+## Latest work since the prior checkpoint
+- Confirmed that the user's wording describes an actual listening failure, not merely an ambiguous cue/report: the spoken output stopped partway through “Bible”.
+- Re-audited `QwenVoiceBackend.synthesize()`: it uses `non_streaming_mode=True` and does not set a small custom `max_new_tokens` value. No cause for the early stop is established, so normal chapter synthesis and Qwen sampling settings have **not** been changed speculatively.
+- Verified that `tools/verify_smoke_transcript.py` compares the final decoded audio transcript with the complete expected sentence and requires the trailing phrase `King James Bible narrator voice`. The reported cutoff is explicitly covered by `tests/test_speech_validation.py`.
+- Added a source-level regression check to ensure the Windows app upload remains gated behind transcription of both the original and relocated final MP3s. This protects against accidentally restoring the old “MP3 decodes, therefore speech passed” behavior.
+- Latest source CI run `45663536296` passed on the current documentation head `1d8b659ae162a6d7fb87e69b6781742e4fccfd1d`. The latest native Windows package run `45663420035` had not yet reached its Whisper step at the time of this checkpoint; its build/acceptance stage was still active. The genuine-Qwen run `45663420141` was still processing the full Genesis 1 chapter, with the cross-chapter check queued.
+- The portable app remains **not released**. The older smoke result proves only that a waveform/MP3 was produced and decoded; it does not prove that the complete sentence was spoken.
+
+## Next validation steps
+1. Finish the native Windows package run and inspect the pinned Whisper transcript for both MP3s. If either output ends early, preserve the failing audio/report and investigate the generated waveform before changing generation settings.
+2. Re-run the Windows and Ubuntu source suites after the release-gate regression test.
+3. Finish the genuine Genesis 1 and two-chapter voice-continuity tests. Do not treat those pipeline tests as speech-transcript approval.
+4. Keep human listening approval separate from ASR. A Whisper pass is a useful independent check, not proof of perfect pronunciation or narration quality.
+
+---
 
 This is the newest recovery checkpoint. It supersedes any earlier statement that successful Qwen synthesis plus MP3 decoding alone proves the whole sentence was spoken.
 
