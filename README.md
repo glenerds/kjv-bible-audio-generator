@@ -1,4 +1,44 @@
-# Continuation checkpoint — 2026-11-25 (Windows speech-gate shell bug found and fixed; audio verdict still pending)
+# Continuation checkpoint — 2026-11-25 (Windows speech gate passed; full Genesis and cross-chapter Qwen tests passed)
+
+This is the newest verified recovery checkpoint. The user's earlier smoke MP3 was genuinely heard as truncated. A later native Windows package now passes independent speech recognition on both its original and relocated MP3s. Human listening approval of this new sample remains separate and is still required.
+
+## New verified milestones
+
+### Native Windows portable package and complete speech check
+- Native Windows package acceptance run **45668073328** passed all stages on workflow commit `be98ad75b8001df36f57fa831b669d85e7bf246a`: actual PyInstaller one-folder/windowed build, five-check self-test, genuine Qwen Base voice-clone audio, bundled FFmpeg MP3 decode, relocation through a simulated `Z:` drive, relocated self-test and relocated speech generation.
+- The corrected transcript step ran under explicit `shell: bash` (the prior workflow omitted this and GitHub used PowerShell, preventing the Whisper script from running). With the corrected shell, pinned Whisper `openai/whisper-tiny.en@87c7102498dcde7456f24cfd30239ca606ed9063` successfully transcribed both final MP3s.
+- Both transcripts exactly matched **“This is a test of the King James Bible narrator voice.”** Each scored similarity **1.0** and contained the required final phrase **“King James Bible narrator voice”**:
+  - Original packaged MP3: decoded duration **3.68 s**, recognized the complete sentence.
+  - Relocated-drive MP3: decoded duration **3.36 s**, recognized the complete sentence.
+- The report `speech-transcript-verification.json` says `status: passed`; the job log contains `PACKAGED_QWEN_SPEECH_TRANSCRIPT_PASSED`. This is the first valid Whisper verdict after the shell fix. It is not a substitute for the user listening to the new sample.
+- GitHub uploaded the full portable app artifact `kjv-bible-audio-generator-portable-windows-x64` (artifact ID `15049962652`) and acceptance evidence artifact `15049837796`. The app manifest records **17,803 files / 14,261,622,008 bytes / 13.282 GiB**. Major payload parts are the two Qwen 1.7B model weights (about 7.16 GiB total), their two speech-tokenizer weight files (about 1.27 GiB total) and the CUDA-enabled PyTorch runtime (about 4.21 GiB).
+- Relocation used Windows `subst` on NTFS, not a physical USB flash drive. The package smoke used CPU mode on the GitHub-hosted runner; target RTX 2070 Super CUDA testing remains open.
+- Workflow: https://github.com/glenerds/kjv-bible-audio-generator/actions/runs/45668073328
+
+### Genuine full Genesis 1 chapter
+- Real Qwen run **45663420141** completed offline against the exact SHA-256-pinned VoiceDesign and Base model snapshots using `qwen-tts==0.1.1` and the production `ChapterWorker + QwenVoiceBackend + ChapterAudioAssembler` path—not a synthetic backend.
+- The generation report records **1 complete chapter, 0 pending, 0 failed**. The source fixture contains all **31 Genesis 1 verses**; Qwen generated **33 speech segments**. The final MP3 is **3,227,373 bytes**, decodes to **268.88 seconds** at 24 kHz, and has a cue file with 33 segments.
+- Actual CPU processing time was **1,671.17 seconds (27 min 51 s)** on the Ubuntu CI host. This is a successful correctness/integration result, not a performance estimate for the target RTX GPU.
+- Evidence artifact: `qwen-real-genesis1-pipeline`, ID `15049086018`.
+
+### Narrator consistency across Genesis 1 and Genesis 2
+- The same real-Qwen run then completed a separate two-chapter test with **2 complete chapters, 0 pending, 0 failed**. It used one `ChapterWorker`, one backend instance and **one voice-preparation batch** for both chapters.
+- Narrator profile fingerprint before and after the two chapters was identical. More importantly, the SHA-256 of the saved narrator prompt at both chapter syntheses was identical: `002b1c4162b2491d48b60c12347bc3b9e35760c48f854628c54258bb73010a73`.
+- Both chapter MP3s decoded successfully. This establishes reuse of the same saved narrator prompt across the chapter boundary; it does not yet establish subjective voice quality for every Bible character.
+- Evidence artifact: `qwen-real-cross-chapter-voice-identity`, ID `15049156712`.
+
+### Cross-platform regression suite
+- Latest full source run **45668083260** passed on both operating systems at README/source head `07eab3737e15ccdeea9ea43a1e240bc4300ff59d`:
+  - Windows 11 / Python 3.12: **157 passed, 1 skipped** (headless GUI display test); all five PowerShell build/helper scripts parsed.
+  - Ubuntu 24.04 / Python 3.13: **154 passed, 4 skipped** (Windows/NTFS-specific checks).
+- These runs include regression checks that the Windows speech-verifier step explicitly uses Bash and that the portable app upload remains success-gated behind both final-MP3 transcript checks.
+
+## Current release status
+**Developer prototype; not yet cleared for customer use.** The Windows CPU package acceptance and two MP3 transcript checks now pass, and the real Genesis 1/cross-chapter CPU pipeline tests pass. Remaining release gates include listening approval of the new smoke MP3, target RTX 2070 Super CUDA performance/VRAM tests, physical USB testing, long-run stop/recovery, full 1,189-chapter generation, Bible-wide speaker-attribution review and final license/source-obligation review. Do not mark the app fully tested or production-ready before those are complete.
+
+---
+
+
 
 This is the newest recovery checkpoint. The original audible cutoff remains unresolved; a later Windows CI failure was traced to a workflow command-shell error, not to a Whisper verdict.
 
