@@ -137,6 +137,20 @@ jobs:
             --device cpu \
             --ffmpeg "$(command -v ffmpeg)"
 
+      - name: Verify complete Genesis 1 narration with pinned long-form Whisper
+        env:
+          HF_HOME: ${{ runner.temp }}/whisper-model-cache
+          HF_HUB_DISABLE_TELEMETRY: "1"
+          HF_HUB_ENABLE_HF_TRANSFER: "0"
+          OMP_NUM_THREADS: "4"
+        run: |
+          python tools/verify_chapter_transcript.py \
+            --audio artifacts/qwen-real-inference/genesis1-output/Genesis/Genesis_001.mp3 \
+            --cue artifacts/qwen-real-inference/genesis1-output/metadata/verse_timestamps/Genesis_001.json \
+            --source examples/genesis_1_kjv_test.txt \
+            --report artifacts/qwen-real-inference/genesis1-output/genesis1-speech-transcript-verification.json \
+            --ffmpeg "$(command -v ffmpeg)"
+
       - name: Upload genuine Genesis 1 MP3 and timing evidence
         if: success()
         uses: actions/upload-artifact@v4
