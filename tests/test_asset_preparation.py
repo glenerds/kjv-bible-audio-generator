@@ -740,7 +740,7 @@ def test_real_qwen_smoke_workflow_has_valid_step_scoped_cache_and_offline_enviro
     workflow = (root / ".github" / "workflows" / "qwen-real-inference.yml").read_text(encoding="utf-8")
     job = workflow.split("  real-qwen-cpu:", 1)[1]
     assert "    env:\n      HF_HOME: ${{ runner.temp }}" not in job
-    assert job.count("HF_HOME: ${{ runner.temp }}/huggingface") == 3
+    assert job.count("HF_HOME: ${{ runner.temp }}/huggingface") == 4
     assert job.count("HF_HUB_OFFLINE: \"1\"") == 1
     assert job.count("TRANSFORMERS_OFFLINE: \"1\"") == 1
     assert job.count("HF_DATASETS_OFFLINE: \"1\"") == 1
