@@ -842,7 +842,7 @@ def test_cudnn_9102_eula_and_acknowledgements_are_pinned_and_required_for_window
         "cudnn-windows-x86_64-9.10.2.21_cuda12-archive.zip",
         "https://docs.nvidia.com/deeplearning/cudnn/backend/v$CudnnDocsVersion/reference/eula.html",
         "https://docs.nvidia.com/deeplearning/cudnn/backend/v$CudnnDocsVersion/reference/acknowledgements.html",
-        "https://github.com/pytorch/pytorch/blob/v2.10.0/RELEASE.md",
+        "https://github.com/pytorch/pytorch/blob/9d06effee01af3b8a06988b18cc724037ca03940/RELEASE.md",
         "CUDNN_",
         "EULA.html",
         "ACKNOWLEDGEMENTS.html",
