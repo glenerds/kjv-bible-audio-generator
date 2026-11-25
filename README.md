@@ -23,9 +23,11 @@ This is the newest recovery checkpoint. It supersedes any earlier statement that
 
 ## Current CI state
 - The first Ubuntu run of the new smoke-WAV test exposed one test-only precision mismatch: the report rounds durations to milliseconds, while the test compared against an unrounded sample duration. The other tests in that run passed (151 passed, 4 skipped); I corrected the assertion to allow the documented millisecond rounding.
-- Cross-platform run 45661437815 (commit 32c48c6451b2d1c4190d7798bab73b33b7a5414c) has passed Ubuntu 24.04 / Python 3.13: **152 passed, 4 skipped**. Its Windows / Python 3.12 leg is still executing the native test suite.
+- Cross-platform run 45661437815 (commit 32c48c6451b2d1c4190d7798bab73b33b7a5414c) passed on both systems:
+  - Windows 11 / Python 3.12: **156 passed**; all five PowerShell build/helper scripts parsed successfully.
+  - Ubuntu 24.04 / Python 3.13: **152 passed, 4 skipped** (Windows-specific checks).
 - API compatibility review caught that Whisper tiny.en rejects explicit task/language overrides because it is English-only. The verifier now uses the checkpoint's built-in English transcription defaults, matching its official Transformers example.
-- Latest corrected cross-platform run 45661869132 and latest corrected native Windows package run 45661869168 both target commit 96b23b539dca3475c481b898d895fa2b17340591 and are queued/in progress. The package runner has started setup; real model synthesis and ASR are still pending.
+- Latest corrected cross-platform run 45661869132 and latest corrected native Windows package run 45661869168 both target commit 96b23b539dca3475c481b898d895fa2b17340591 and are in progress. The package runner is still in its native Windows build/acceptance step; real model synthesis and ASR are pending.
 - Earlier Windows package runs 45661437869 and 45661097956 were started before that final Whisper compatibility correction; they are superseded by run 45661869168. No speech-transcript pass is claimed yet.
 
 ## Release status
