@@ -96,5 +96,5 @@ def test_real_cross_chapter_voice_script_checks_persistent_narrator_profile():
     assert "SyntheticTestBackend" not in script
     assert fixture.count("Genesis 1:1 ") == 1
     assert fixture.count("Genesis 2:23 ") == 1
-    assert "not a Bible import" in source_note
+    assert "must not be used as a replacement for complete" in source_note
     assert "Genesis.json" in source_note
