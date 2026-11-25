@@ -774,3 +774,31 @@ def test_real_qwen_genesis1_script_uses_actual_worker_and_checks_31_verses_mp3_a
     ):
         assert token in script
     assert "SyntheticTestBackend" not in script
+
+
+
+def test_real_qwen_workflow_runs_genesis_after_voice_smoke_without_redownloading_models():
+    root = Path(__file__).resolve().parents[1]
+    workflow = (root / ".github" / "workflows" / "qwen-real-inference.yml").read_text(encoding="utf-8")
+    genesis = (root / "tools" / "qwen_genesis1_real.py").read_text(encoding="utf-8")
+    download_at = workflow.index("Download exact pinned Qwen VoiceDesign and Base snapshots")
+    smoke_at = workflow.index("Run real VoiceDesign and Base synthesis with the network disabled")
+    smoke_upload_at = workflow.index("Upload genuine Qwen audio and verification evidence")
+    ffmpeg_at = workflow.index("Install FFmpeg for real Genesis 1 MP3 pipeline")
+    genesis_at = workflow.index("Run full real-Qwen Genesis 1 chapter pipeline offline")
+    genesis_upload_at = workflow.index("Upload genuine Genesis 1 MP3 and timing evidence")
+    assert download_at < smoke_at < smoke_upload_at < ffmpeg_at < genesis_at < genesis_upload_at
+    assert workflow.count("hf download Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign") == 1
+    assert workflow.count("hf download Qwen/Qwen3-TTS-12Hz-1.7B-Base") == 1
+    assert "qwen_genesis1_real.py" in workflow
+    assert 'name: qwen-real-genesis1-pipeline' in workflow
+    assert 'HF_HUB_OFFLINE: "1"' in workflow[genesis_at:genesis_upload_at]
+    assert 'TRANSFORMERS_OFFLINE: "1"' in workflow[genesis_at:genesis_upload_at]
+    for token in (
+        "ChapterWorker(",
+        "AttributionMap(registry, segment_overrides=overrides)",
+        "ChapterAudioAssembler(",
+        "GENUINE_QWEN_GENESIS1_PIPELINE_PASSED",
+    ):
+        assert token in genesis
+    assert "SyntheticTestBackend" not in genesis

@@ -5,6 +5,15 @@ on:
     branches: [main]
     paths:
       - ".github/workflows/qwen-real-inference.yml"
+      - "tools/qwen_asset_integrity.py"
+      - "tools/qwen_real_smoke.py"
+      - "tools/qwen_genesis1_real.py"
+      - "src/kjv_audio_generator/backend.py"
+      - "src/kjv_audio_generator/worker.py"
+      - "src/kjv_audio_generator/audio.py"
+      - "src/kjv_audio_generator/attribution.py"
+      - "src/kjv_audio_generator/voices.py"
+      - "examples/genesis_1_kjv_test.txt"
   workflow_dispatch:
 
 permissions:
@@ -96,6 +105,43 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: qwen-real-cpu-inference-smoke
-          path: artifacts/qwen-real-inference/**
+          path: artifacts/qwen-real-inference/output/**
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Install FFmpeg for real Genesis 1 MP3 pipeline (CI only)
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes ffmpeg
+          ffmpeg -version
+          ffmpeg -hide_banner -encoders | grep -E '(^|[[:space:]])libmp3lame([[:space:]]|$)'
+
+      - name: Run full real-Qwen Genesis 1 chapter pipeline offline
+        env:
+          HF_HOME: ${{ runner.temp }}/huggingface
+          HF_HUB_DISABLE_TELEMETRY: "1"
+          HF_HUB_ENABLE_HF_TRANSFER: "0"
+          OMP_NUM_THREADS: "4"
+          MKL_NUM_THREADS: "4"
+          TOKENIZERS_PARALLELISM: "false"
+          HF_HUB_OFFLINE: "1"
+          TRANSFORMERS_OFFLINE: "1"
+          HF_DATASETS_OFFLINE: "1"
+        run: |
+          python tools/qwen_genesis1_real.py \
+            --models-root models \
+            --integrity-report artifacts/qwen-real-inference/model-integrity.json \
+            --output-dir artifacts/qwen-real-inference/genesis1-output \
+            --device cpu \
+            --ffmpeg "$(command -v ffmpeg)"
+
+      - name: Upload genuine Genesis 1 MP3 and timing evidence
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qwen-real-genesis1-pipeline
+          path: |
+            artifacts/qwen-real-inference/model-integrity.json
+            artifacts/qwen-real-inference/genesis1-output/**
           if-no-files-found: error
           retention-days: 14
