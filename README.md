@@ -1,3 +1,24 @@
+# Continuation checkpoint — 2026-11-25 (KJV punctuation verified; Linux source suite green)
+
+This checkpoint is newer than the earlier cross-chapter note below.
+
+## Current verification state
+- Current source head before this README update: `58e7e999b0609ce0ede86abae867f2b198415448`.
+- Latest source run on the current code, `45656020542`: Ubuntu **147 passed, 4 skipped**. The native Windows suite is still in progress.
+- Current Windows package runs `45653137050` (the self-copy correction) and `45654417086` (same correction with the cross-chapter code) are still active. They must complete their self-test, real audio smoke, MP3 decoding, relocation and evidence upload stages before acceptance is claimed.
+- The real-Qwen combined workflow on the corrected source is `45655573454`. It is still downloading both pinned Qwen snapshots; short-form real inference, the complete Genesis 1 audio run and the new cross-chapter test have not yet completed in this run.
+- The newest README itself is deliberately a docs-only commit; it does not replace or invalidate the source/test commits above.
+
+## Genesis 1/2 test-text verification
+- The cross-chapter fixture has only Genesis 1:1 and Genesis 2:23. It is not a whole-Bible input or complete-chapter test.
+- Both lines were compared directly against the public corpus file `Genesis.json` at https://github.com/renniemaharaj/kjv-bible. **Both now match exactly.** The earlier semicolon in Genesis 2:23 was corrected to the source colon after `flesh of my flesh`.
+- `tools/qwen_cross_chapter_voice_real.py` now checks the exact Genesis 2:23 text and preserves that same colon across the narrator/Adam split. It processes both chapter records with one real worker/backend and requires the narrator prompt SHA-256 to be identical at both chapter uses.
+- A previous static run caught outdated workflow environment-count assertions and a source-note phrase assertion. Those have been corrected; Ubuntu now passes 147 tests. The current Windows full suite is still pending.
+
+## Confirmed release blockers
+**Still a developer prototype; not ready for customer testing.** The real Genesis 1 Linux CPU pipeline has passed previously. The new narrator prompt continuity test has not yet passed against real Qwen output. Native Windows frozen-app acceptance and package evidence remain pending. Listening QA, Bible-wide speaker mapping/review, physical USB operation, target-PC GPU performance, stop/recovery under real inference, full 1,189-chapter generation and final license/provenance review remain open.
+
+---
 # Continuation checkpoint — 2026-11-25 (cross-chapter narrator test added; Windows package final evidence retest)
 
 This is the newest recovery point and supersedes older status where different.
