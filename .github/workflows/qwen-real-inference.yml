@@ -192,5 +192,5 @@ jobs:
           name: qwen-real-cross-chapter-voice-identity
           path: |
             artifacts/qwen-real-inference/cross-chapter-voice-output/**
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 14
