@@ -129,7 +129,7 @@ def test_ffmpeg_documentation_records_a_pinned_lgplv3_candidate_without_claiming
     assert source_commit in readme
     assert "--enable-version3" in readme
     assert "--enable-libmp3lame" in readme
-    assert "archive SHA-256 was verified on a native Windows runner" in readme
+    assert "confirmed both its byte length and SHA-256" in readme
     assert "not an approved app dependency" in readme
 
 
