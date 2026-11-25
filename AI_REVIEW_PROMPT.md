@@ -289,10 +289,10 @@ If you return a patch or corrected archive, include:
 ## Project links and source version
 
 - **Project directory on GitHub:** https://github.com/glenerds/kjv-bible-audio-generator
-- **README:** https://github.com/glenerds/glenerds-apps/blob/main/projects/kjv-bible-audio-generator/README.md
-- **Resume guide:** https://github.com/glenerds/glenerds-apps/blob/main/projects/kjv-bible-audio-generator/docs/RESUME_HERE.md
-- **Development status:** https://github.com/glenerds/glenerds-apps/blob/main/projects/kjv-bible-audio-generator/docs/DEVELOPMENT_STATUS.md
-- **0.4.10 checkpoint:** https://github.com/glenerds/glenerds-apps/blob/main/projects/kjv-bible-audio-generator/docs/PROGRESS_CHECKPOINT_2026-11-24_GENERATOR_PROTOTYPE_0_4_10.md
+- **README:** https://github.com/glenerds/kjv-bible-audio-generator/blob/main/README.md
+- **Resume guide:** https://github.com/glenerds/kjv-bible-audio-generator/blob/main/docs/RESUME_HERE.md
+- **Development status:** https://github.com/glenerds/kjv-bible-audio-generator/blob/main/docs/DEVELOPMENT_STATUS.md
+- **0.4.10 checkpoint:** https://github.com/glenerds/kjv-bible-audio-generator/blob/main/docs/PROGRESS_CHECKPOINT_2026-11-24_GENERATOR_PROTOTYPE_0_4_10.md
 
 The supplied package contains the 0.4.10 source snapshot and project records. If your platform can browse GitHub, use the links to cross-check the project records. If the GitHub branch has since advanced beyond 0.4.10, do not silently mix versions: report the exact commit/hash/version you inspected and use the supplied 0.4.10 package as the fixed review baseline unless instructed otherwise.
 
