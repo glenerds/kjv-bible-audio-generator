@@ -61,6 +61,8 @@ def test_windows_portable_app_upload_requires_both_final_mp3_transcripts():
     verify_step = workflow[verify_at:app_upload_at]
     app_upload_step = workflow[app_upload_at:evidence_upload_at]
     assert "if: success()" in verify_step
+    assert "shell: bash" in verify_step
+    assert "set -euo pipefail" in verify_step
     assert verify_step.count("--audio") == 2
     assert "--expected-text" in verify_step
     assert "King James Bible narrator voice." in verify_step
