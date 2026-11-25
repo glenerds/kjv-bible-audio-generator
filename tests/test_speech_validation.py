@@ -32,7 +32,7 @@ def test_transcript_normalization_accepts_case_and_punctuation_changes():
     assert result["trailing_phrase_present"] is True
 
 
-def test_transcript_missing_one_middle_word_keeps_suffix_but_fails_similarity_floor():
+def test_transcript_missing_one_middle_word_keeps_suffix_and_passes_similarity_floor():
     result = assess_transcript(
         EXPECTED,
         "This is test of the King James Bible narrator voice.",
