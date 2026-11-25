@@ -615,7 +615,7 @@ def test_packaged_launcher_dispatches_through_the_cli_main_entrypoint():
     root = Path(__file__).resolve().parents[1]
     entrypoint = (root / "tools" / "entrypoint.py").read_text(encoding="utf-8")
     assert "from kjv_audio_generator.__main__ import main" in entrypoint
-    assert "raise SystemExit(main())" in entrypoint
+    assert "raise SystemExit(_exit_code)" in entrypoint
 
 
 def test_windowed_cli_self_test_writes_report_when_stdout_and_stderr_are_missing(tmp_path, monkeypatch):
@@ -686,7 +686,7 @@ def test_native_windows_package_acceptance_builds_runs_and_relocates_the_frozen_
     ):
         assert token in workflow + script
     for token in (
-        "tools/build_windows.ps1",
+        "$BuildScript = Join-Path $PSScriptRoot 'build_windows.ps1'",
         "--self-test",
         "--audio-smoke",
         "self_test_report.json",
