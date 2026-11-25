@@ -135,7 +135,7 @@ def main() -> int:
     if verse_one.ref.label() != "Genesis 1:1" or verse_one.text != expected_one:
         raise RuntimeError("Genesis 1:1 cross-chapter fixture differs from the approved KJV text.")
     expected_adam = (
-        "And Adam said, This is now bone of my bones, and flesh of my flesh; "
+        "And Adam said, This is now bone of my bones, and flesh of my flesh: "
         "she shall be called Woman, because she was taken out of Man."
     )
     if verse_adam.ref.label() != "Genesis 2:23" or verse_adam.text != expected_adam:
