@@ -1,36 +1,38 @@
-# Continuation checkpoint — 2026-11-25 (cuDNN 9.10.2.21 tests green; notice hash gate and Windows package validation running)
+# Continuation checkpoint — 2026-11-25 (cuDNN provenance check green; pre-freeze notice hash gate running)
 
-The real-Qwen Genesis 1 chapter passed long-form Whisper; the Genesis 1–2 narrator-reuse test passed; and the synthetic full-Bible worker simulation passed across 66 books, 1,189 chapters and 31,102 verses. Two Windows portable-app runs passed original/relocated short-MP3 Whisper checks. The NVIDIA notice bundle now matches the actual PyTorch 2.10 CUDA 12.8 wheel's cuDNN 9.10.2.21 version family. Fresh CI is checking the package and its notice manifest.
+The real-Qwen Genesis 1 chapter passed long-form Whisper; the Genesis 1–2 narrator-reuse test passed; and the synthetic full-Bible worker simulation passed across 66 books, 1,189 chapters and 31,102 verses. Two native Windows portable-app runs passed the original/relocated short-MP3 Whisper checks. The cuDNN bundle now matches the PyTorch 2.10 CUDA 12.8 wheel's 9.10.2.21 release-matrix pin; source tests for that pin are green on both platforms.
 
-## cuDNN runtime and notices — corrected and tested
-- The Windows build installs torch==2.10.0 from the CUDA 12.8 wheel index. PyTorch's published release matrix identifies the cu128 2.10 build with **cuDNN 9.10.2.21**; the immutable upstream release-matrix snapshot is https://github.com/pytorch/pytorch/blob/9d06effee01af3b8a06988b18cc724037ca03940/RELEASE.md.
-- An initial 9.7.0.66 assumption came from an older source-installer script, but it did not match the published cu128 wheel. That pin has been superseded. Use **9.10.2.21** for the wheel pairing; the matching NVIDIA documentation version is **9.10.2**.
-- tools/prepare_assets.ps1 downloads the versioned cuDNN 9.10.2 EULA and acknowledgements; checks for the EULA's SDK/redistribution language and the required third-party acknowledgement text; and records both files' SHA-256 digests and URLs in LICENSES/NVIDIA_CUDNN_NOTICE_MANIFEST.json.
-- tools/build_windows.ps1 now requires CUDNN_9.10.2.21_EULA.html, CUDNN_9.10.2.21_ACKNOWLEDGEMENTS.html and the manifest. Before freezing, it checks the manifest's version/archive/source URLs and re-hashes both notice files to detect modification after preparation. For CUDA 12.8 it also checks torch.backends.cudnn.version() reports the **9.10.2 runtime family**. This API does not expose the .21 packaging suffix, so the exact suffix is tied to the pinned PyTorch release matrix.
-- The EULA supplement identifies runtime .so and .dll files as distributable SDK components under the parent SDK agreement's requirements; the acknowledgements require binary redistributions to reproduce their third-party copyright/conditions/disclaimers. These are notice/integrity safeguards, not legal clearance. NVIDIA CUDA/cuDNN component obligations still require human review.
+## cuDNN 9.10.2.21 runtime and notices
+- The Windows build installs torch==2.10.0 from the CUDA 12.8 wheel index. PyTorch's published release matrix identifies the CUDA 12.8 build for 2.10 with **cuDNN 9.10.2.21**; the immutable source snapshot is https://github.com/pytorch/pytorch/blob/9d06effee01af3b8a06988b18cc724037ca03940/RELEASE.md.
+- The earlier 9.7.0.66 assumption came from an older source-installer script, not the wheel's runtime dependency; it has been superseded. The wheel pairs with **cuDNN 9.10.2.21**, and its versioned NVIDIA documentation is 9.10.2.
+- Asset preparation downloads the versioned NVIDIA cuDNN 9.10.2 EULA and acknowledgements, checks required terms, and records their SHA-256s and URLs in LICENSES/NVIDIA_CUDNN_NOTICE_MANIFEST.json.
+- Before freezing, the Windows builder requires the two 9.10.2.21 notice files and manifest; checks the manifest's cuDNN version/archive and both NVIDIA documentation URLs; checks the immutable PyTorch release-matrix URL; and recomputes the EULA/acknowledgement file hashes against the manifest. For CUDA 12.8, it also checks torch.backends.cudnn.version() reports the 9.10.2 runtime family. The runtime API does not expose the .21 packaging suffix, so that suffix is grounded in the PyTorch release matrix.
+- NVIDIA's cuDNN EULA supplement identifies runtime .so/.dll files as distributable SDK components subject to the parent Agreement conditions; the acknowledgements require binary redistributions to reproduce specified third-party copyright/conditions/disclaimers. These engineering checks are not legal clearance; component terms still require human review.
 
 ## Latest completed cross-platform tests
-- Source run **45715603069** (run 156), commit 9231023594aaf6561282fc83b7f99c766e44011d, passed:
-  - Windows 11 / Python 3.12: **172 passed, 1 skipped** (headless GUI); all five PowerShell build/helper scripts parsed successfully.
-  - Ubuntu 24.04 / Python 3.13: **168 passed, 4 skipped** (NTFS/Windows-only checks).
-- This run included the cuDNN 9.10.2.21 EULA/acknowledgement source tests and build-time runtime-family gate. The next source run adds tests for checking the notice manifest URL/version and SHA-256s before packaging.
-- Current source runs: **45716125413** (run 159) checks the builder's cuDNN notice hash validation; **45716210070** (run 161) and **45716214117** (run 162) include the pinned PyTorch release-matrix URL assertion. Their results are pending at this checkpoint.
+- Source run **45716214117** (run 162), commit 014c21e18fc42c952e24142e089d5370578669d6, passed:
+  - Windows 11 / Python 3.12: **170 passed, 2 skipped** (hosted GUI display unavailable); all five PowerShell build/helper scripts parsed.
+  - Ubuntu 24.04 / Python 3.13: **168 passed, 4 skipped** (NTFS/Windows-only tests).
+- This run includes the version-specific cuDNN EULA/acknowledgement test, runtime-family build check and immutable PyTorch release-matrix URL assertion.
+- New source run **45716748218** (run 165), commit 386f53cc251725b7c62cfa89e2d7a3e55c0a2e94, includes a new regression test that the builder enforces the exact PyTorch release-matrix provenance URL. Ubuntu is green at 168 passed/4 skips; the Windows suite is running.
+- Earlier runs 154/155/161 failed on superseded 9.7 or v2.10 test expectations; their fixes are covered in the later green run 162 and the ongoing run 165.
 
-## Current native Windows package checks
-- Package run **45716125369** (run 38) is the first fresh package workflow at code commit b9086404dc75f52c86ee62c3a172e80873e74714 with the cuDNN EULA/acknowledgement and pre-freeze manifest-hash checks. Its native Windows build/acceptance job is active; no failure has been reported.
-- Package run **45716210236** (run 39) is also active with the immutable PyTorch release-matrix source link pinned. Verify the final application/evidence artifact and inspect portable-package-manifest.json for all three NVIDIA cuDNN notice files before calling either run a pass.
-- The prior completed package run 28 remains a verified CPU-mode smoke build: real Qwen smoke, FFmpeg decode, simulated Z: relocation and exact Whisper sentence results for original and relocated MP3s (1.0 similarity). App artifact **15055775380**; evidence artifact **15053954142**. The relocation used subst on NTFS, not physical removable USB.
+## Current Windows package validation
+- Package run **45716719396** (run 40), code commit c290a1f7593458f9527ea4d529014126989d5175, is rebuilding the application with the cuDNN notice-manifest version/archive/URL checks and pre-freeze EULA/acknowledgement SHA verification. Its native build/acceptance step is active with no reported failure; the final artifacts and package manifest have not uploaded yet.
+- The previous package run 39 checks the notice set and runtime-family gate, but run 40 is the stronger package candidate because it adds the pre-freeze manifest integrity checks.
+- Earlier package run 28 remains a verified CPU-mode smoke build: real Qwen smoke, FFmpeg decode, simulated Z: relocation and exact Whisper sentence results for original and relocated MP3s (1.0 similarity). App artifact **15055775380**; evidence artifact **15053954142**. Relocation used subst on NTFS, not physical USB.
+- Do not mark the new package as passed until the app/evidence artifacts upload and portable-package-manifest.json confirms CUDNN_9.10.2.21_EULA.html, CUDNN_9.10.2.21_ACKNOWLEDGEMENTS.html, NVIDIA_CUDNN_NOTICE_MANIFEST.json and TOKENIZERS_APACHE_2.0.txt are present.
 
-## Verified speech and full-Bible work
-- Genuine-Qwen run **45679773309** (run 15) passed full Genesis 1 generation and long-form Whisper: **31 verses**, 33 source-validated cue segments, 273.84-second MP3, **797 expected / 793 recognized words**, **97.61%** word-sequence similarity, and opening/final phrase both detected. Human listening is still required. [Genesis 1 MP3 and transcript evidence](https://github.com/glenerds/kjv-bible-audio-generator/actions/runs/45679773309).
-- The same real-Qwen run passed the separate Genesis 1–2 narrator continuity test: two completed chapters, one profile-preparation batch and identical narrator prompt/profile fingerprints across the boundary.
+## Verified real speech and full-Bible processing
+- Genuine-Qwen run **45679773309** (run 15) passed full Genesis 1 generation and long-form Whisper: **31 verses**, 33 source-validated cue segments, 273.84-second MP3, **797 expected / 793 recognized words**, **97.61%** word-sequence similarity, with opening and final phrase both detected. Human listening is still required. [Genesis 1 MP3 and transcript evidence](https://github.com/glenerds/kjv-bible-audio-generator/actions/runs/45679773309).
+- The same run passed the separate Genesis 1–2 narrator continuity test: two completed chapters, one profile-preparation batch and identical narrator prompt/profile fingerprints across the boundary.
 - Synthetic worker run **45683750987** passed all **66 books, 1,189 chapters and 31,102 verse records** through the actual queue/worker/report path: 1,189 completed placeholder outputs/cues and 31,102 cue segments. That test used the test-only synthetic backend and placeholder assembler—not Qwen speech.
 
 ## Distribution and release blockers
 - Full inventory: [docs/RELEASE_DISTRIBUTION_LICENSE_AUDIT_2026-11-25.md](docs/RELEASE_DISTRIBUTION_LICENSE_AUDIT_2026-11-25.md).
-- The project has no root LICENSE and no project.license in pyproject.toml; the owner must choose the source-code license before redistribution.
-- Tokenizers Apache-2.0 notice and cuDNN EULA/acknowledgements are now handled by pinned/fail-closed build steps, but the new final Windows manifest still needs inspection. All bundled NVIDIA CUDA/cuDNN and FFmpeg linked-component obligations require legal review.
-- **Developer prototype only—not cleared for customer or commercial distribution.** Human listening, RTX 2070 Super CUDA/VRAM, physical USB, long-run stop/recovery, real-Qwen generation of all 1,189 chapters, KJV speaker-attribution review and final project/third-party license review remain open.
+- The project has no root LICENSE and no project.license in pyproject.toml; the owner must choose the project's source-code license before redistribution.
+- Tokenizers Apache-2.0 and cuDNN EULA/acknowledgements are handled by pinned/fail-closed steps, but the new final Windows package manifest still needs inspection. NVIDIA CUDA/cuDNN and FFmpeg linked-component obligations require human legal review.
+- **Developer prototype only—not cleared for customer or commercial distribution.** Human listening, RTX 2070 Super CUDA/VRAM, physical USB, long-run recovery, real-Qwen generation of all 1,189 chapters, KJV speaker-attribution review and final project/third-party license review remain open.
 
 
 ---
